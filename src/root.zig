@@ -383,10 +383,10 @@ pub fn CustomisedSession(comptime Table: cache.TableTemplate) type {
             self.cache = settings.cache orelse .defaults(self.allocator);
 
             var req = FetchReq.init(self.allocator, self.authorization);
-            defer req.deinit();
+            defer req.deinit(self.allocator);
 
-            const res = try req.makeRequest(.GET, "/gateway/bot", null);
-            const body = try req.body.toOwnedSlice();
+            const res = try req.makeRequest(self.allocator, .GET, "/gateway/bot", null);
+            const body = try req.body.toOwnedSlice(self.allocator);
             defer self.allocator.free(body);
 
             // check status idk
@@ -394,6 +394,7 @@ pub fn CustomisedSession(comptime Table: cache.TableTemplate) type {
                 @panic("we are cooked\n"); // check your token dumbass
             }
 
+            std.debug.print("{s}\n", .{body});
             const parsed = try json.parseFromSlice(GatewayBotInfo, self.allocator, body, .{});
             defer parsed.deinit();
 

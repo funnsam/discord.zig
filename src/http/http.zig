@@ -26,19 +26,6 @@ pub const DiscordError = @import("../errors.zig").DiscordError;
 
 pub const BASE_URL = "https://discord.com/api/v10";
 
-// zig fmt: off
-pub const MakeRequestError = (
-       std.fmt.BufPrintError
-    || http.Client.ConnectTcpError
-    || http.Client.Request.WaitError
-    || http.Client.Request.FinishError
-    || http.Client.Request.Writer.Error
-    || http.Client.Request.Reader.Error
-    || std.Uri.ResolveInPlaceError
-    || error{StreamTooLong}
-);
-// zig fmt: on
-
 pub const FetchReq = struct {
     allocator: mem.Allocator,
     token: []const u8,
@@ -54,15 +41,15 @@ pub const FetchReq = struct {
             .allocator = allocator,
             .client = client,
             .token = token,
-            .body = std.ArrayList(u8).init(allocator),
-            .extra_headers = std.ArrayList(http.Header).init(allocator),
+            .body = std.ArrayList(u8).empty,
+            .extra_headers = std.ArrayList(http.Header).empty,
             .query_params = std.StringArrayHashMap([]const u8).init(allocator),
         };
     }
 
-    pub fn deinit(self: *FetchReq) void {
+    pub fn deinit(self: *FetchReq, allocator: mem.Allocator) void {
         self.client.deinit();
-        self.body.deinit();
+        self.body.deinit(allocator);
     }
 
     pub fn addHeader(self: *FetchReq, name: []const u8, value: ?[]const u8) !void {
@@ -209,7 +196,7 @@ pub const FetchReq = struct {
         return .ok({});
     }
 
-    pub fn post(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !Result(T) {
+    pub fn post(self: *FetchReq, allocator: mem.Allocator, comptime T: type, path: []const u8, object: anytype) !Result(T) {
         var buf: [4096]u8 = undefined;
         var writer = io.Writer.fixed(&buf);
 
@@ -218,12 +205,12 @@ pub const FetchReq = struct {
             .options = .{ .emit_null_optional_fields = true, },
         };
         try stringify.write(object);
-        const result = try self.makeRequest(.POST, path, writer.buffered());
+        const result = try self.makeRequest(allocator, .POST, path, writer.buffered());
 
         if (result.status != .ok and result.status != .created and result.status != .accepted)
-            return try json_helpers.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
+            return try json_helpers.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice(allocator));
 
-        return try json_helpers.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
+        return try json_helpers.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice(allocator));
     }
 
     pub fn post2(self: *FetchReq, comptime T: type, path: []const u8) !Result(T) {
@@ -286,22 +273,26 @@ pub const FetchReq = struct {
 
     pub fn makeRequest(
         self: *FetchReq,
+        allocator: mem.Allocator,
         method: http.Method,
         path: []const u8,
         to_post: ?[]const u8,
-    ) MakeRequestError!http.Client.FetchResult {
+    ) !http.Client.FetchResult {
         var buf: [256]u8 = undefined;
         const constructed = try std.fmt.bufPrint(&buf, "{s}{s}{s}", .{ BASE_URL, path, try self.formatQueryParams() });
 
-        try self.extra_headers.append(http.Header{ .name = "Accept", .value = "application/json" });
-        try self.extra_headers.append(http.Header{ .name = "Content-Type", .value = "application/json" });
-        try self.extra_headers.append(http.Header{ .name = "Authorization", .value = self.token });
+        try self.extra_headers.append(allocator, http.Header{ .name = "Accept", .value = "application/json" });
+        try self.extra_headers.append(allocator, http.Header{ .name = "Content-Type", .value = "application/json" });
+        try self.extra_headers.append(allocator, http.Header{ .name = "Authorization", .value = self.token });
+
+        var writer = std.io.Writer.Allocating.fromArrayList(allocator, &self.body);
+        defer writer.deinit();
 
         var fetch_options = http.Client.FetchOptions{
             .location = http.Client.FetchOptions.Location{ .url = constructed },
             .method = method,
-            .extra_headers = try self.extra_headers.toOwnedSlice(),
-            .response_storage = .{ .dynamic = &self.body },
+            .extra_headers = try self.extra_headers.toOwnedSlice(allocator),
+            .response_writer = &writer.writer,
         };
 
         if (to_post != null) {
@@ -309,6 +300,7 @@ pub const FetchReq = struct {
         }
 
         const res = try self.client.fetch(fetch_options);
+        self.body = writer.toArrayList();
         return res;
     }
 

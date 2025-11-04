@@ -217,11 +217,8 @@ pub fn deinit(self: *Self) void {
     self.client.deinit();
 }
 
-pub const ReadError =
-    std.posix.SetSockOptError || json.ParseError(json.Scanner) || tls.Client.InitError(tls.Client.StreamInterface) || zlib.Error || mem.Allocator.Error || std.Thread.SpawnError;
-
 /// listens for messages
-fn readMessage(self: *Self, _: anytype) (ReadError || SendError || ReconnectError)!void {
+fn readMessage(self: *Self, _: anytype) !void {
     try self.client.readTimeout(0);
 
     while (true) {
@@ -360,9 +357,7 @@ fn readMessage(self: *Self, _: anytype) (ReadError || SendError || ReconnectErro
     }
 }
 
-pub const SendHeartbeatError = CloseError || SendError;
-
-pub fn heartbeat(self: *Self, initial_jitter: f64) SendHeartbeatError!void {
+pub fn heartbeat(self: *Self, initial_jitter: f64) !void {
     var jitter = initial_jitter;
 
     while (true) {
@@ -394,20 +389,13 @@ pub fn heartbeat(self: *Self, initial_jitter: f64) SendHeartbeatError!void {
     }
 }
 
-pub const ReconnectError = ConnectError || CloseError;
-
-pub fn reconnect(self: *Self) ReconnectError!void {
+// NOTE: zig seems to be unable to resolve what error could occur here for whatever reason
+pub fn reconnect(self: *Self) anyerror!void {
     try self.disconnect();
     try self.connect();
 }
 
-pub const ConnectError =
-    net.TcpConnectToAddressError || crypto.tls.Client.InitError(net.Stream) ||
-    net.Stream.ReadError || net.IPParseError ||
-    crypto.Certificate.Bundle.RescanError || net.TcpConnectToHostError ||
-    std.fmt.BufPrintError || mem.Allocator.Error;
-
-pub fn connect(self: *Self) ConnectError!void {
+pub fn connect(self: *Self) !void {
     //std.time.sleep(std.time.ms_per_s * 5);
     self.client = try Self._connect_ws(self.allocator, self.gatewayUrl());
 
@@ -427,13 +415,11 @@ pub fn connect(self: *Self) ConnectError!void {
     };
 }
 
-pub fn disconnect(self: *Self) CloseError!void {
+pub fn disconnect(self: *Self) !void {
     try self.close(ShardSocketCloseCodes.Shutdown, "Shard down request");
 }
 
-pub const CloseError = mem.Allocator.Error || error{ReasonTooLong};
-
-pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) CloseError!void {
+pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) !void {
     // Implement reconnection logic here
     self.client.close(.{
         .code = @intFromEnum(code), //u16

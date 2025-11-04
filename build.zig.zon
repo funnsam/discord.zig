@@ -25,12 +25,12 @@
     // internet connectivity.
     .dependencies = .{
         .zlib = .{
-            .url = "git+https://git.yuzucchii.xyz/yuzucchii/zlib.git#1814f746f6938e40f0924d27c7b73e883925ea10",
-            .hash = "zlib-0.1.0-AAAAADe8QACzxsAIVBorAWTGHmrWiXBVuym3H5gH3XMY",
+            .url = "git+https://github.com/funnsam/zig-zlib.git#cb4a44ad4c691fb9944d933f46f894b8ffbb9545",
+            .hash = "zlib-0.1.0-0MrJUF28QAD4v0V53MVN1rxUIxYShK2SmByybip3Kdf0",
         },
         .websocket = .{
-            .url = "https://github.com/karlseguin/websocket.zig/archive/refs/heads/master.zip",
-            .hash = "websocket-0.1.0-ZPISdbZVAwAgDzIxt0cpiG4hjPVq92ALsEPLSCPbMQqv",
+            .url = "git+https://github.com/karlseguin/websocket.zig.git#91ca9c501066144fa95a52237da110812e9aa145",
+            .hash = "websocket-0.1.0-ZPISdRNzAwAGszh62EpRtoQxu8wb1MSMVI6Ow0o2dmyJ",
         },
     },
     .paths = .{

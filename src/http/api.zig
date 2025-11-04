@@ -10,14 +10,11 @@ const Partial = Types.Partial;
 const Result = @import("../errors.zig").Result;
 
 // http
-const MakeRequestError = @import("http.zig").MakeRequestError;
 const FileData = @import("http.zig").FileData;
 const FetchReq = @import("http.zig").FetchReq;
 
 allocator: mem.Allocator,
 authorization: []const u8,
-
-pub const RequestFailedError = MakeRequestError || error{FailedRequest} || json.ParseError(json.Scanner) || io.Writer.Error;
 
 pub fn init(allocator: mem.Allocator, authorization: []const u8) Self {
     return .{
@@ -35,7 +32,7 @@ const Self = @This();
 /// If operating on a guild channel, this endpoint requires the current user to have the `VIEW_CHANNEL` permission.
 /// If the channel is a voice channel, they must also have the `CONNECT` permission.
 /// If the current user is missing the `READ_MESSAGE_HISTORY` permission in the channel, then no messages will be returned.
-pub fn fetchMessages(self: *Self, channel_id: Snowflake, query: Types.GetMessagesQuery) RequestFailedError!Result([]Types.Message) {
+pub fn fetchMessages(self: *Self, channel_id: Snowflake, query: Types.GetMessagesQuery) !Result([]Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages", .{channel_id.into()});
 
@@ -55,7 +52,7 @@ pub fn fetchMessages(self: *Self, channel_id: Snowflake, query: Types.GetMessage
 /// Returns a message object on success.
 /// If operating on a guild channel, this endpoint requires the current user to have the `VIEW_CHANNEL` and `READ_MESSAGE_HISTORY` permissions.
 /// If the channel is a voice channel, they must also have the `CONNECT` permission.
-pub fn fetchMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) RequestFailedError!Result(Types.Message) {
+pub fn fetchMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) !Result(Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}", .{ channel_id.into(), message_id.into() });
 
@@ -82,14 +79,14 @@ pub fn sendMessage(
     self: *Self,
     channel_id: Snowflake,
     create_message: Partial(Types.CreateMessage),
-) RequestFailedError!Result(Types.Message) {
+) !Result(Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
-    const res = try req.post(Types.Message, path, create_message);
+    const res = try req.post(self.allocator, Types.Message, path, create_message);
     return res;
 }
 
@@ -133,7 +130,7 @@ pub fn sendMessageWithFiles(
     self: *Self,
     channel_id: Snowflake,
     wf: CreateMessageWithFile,
-) RequestFailedError!Result(Types.Message) {
+) !Result(Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages", .{channel_id.into()});
 
@@ -148,7 +145,7 @@ pub fn sendMessageWithFiles(
 /// This endpoint requires the `SEND_MESSAGES` permission, if the current user sent the message, or additionally the `MANAGE_MESSAGES` permission, for all other messages, to be present for the current user.
 /// Returns a message object.
 /// Fires a Message Update Gateway event.
-pub fn crosspostMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) RequestFailedError!Result(Types.Message) {
+pub fn crosspostMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) !Result(Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/crosspost", .{ channel_id.into(), message_id.into() });
 
@@ -169,7 +166,7 @@ pub fn react(
     channel_id: Snowflake,
     message_id: Snowflake,
     emoji: Types.Emoji,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/reactions/{s}:{d}/@me", .{
         channel_id.into(),
@@ -192,7 +189,7 @@ pub fn deleteOwnReaction(
     channel_id: Snowflake,
     message_id: Snowflake,
     emoji: Types.Emoji,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/reactions/{s}:{d}/@me", .{
         channel_id.into(),
@@ -215,7 +212,7 @@ pub fn fetchReactions(
     channel_id: Snowflake,
     message_id: Snowflake,
     emoji: Types.Emoji,
-) RequestFailedError!Result([]Types.User) {
+) !Result([]Types.User) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/reactions/{s}:{d}", .{
         channel_id.into(),
@@ -238,7 +235,7 @@ pub fn nukeReactions(
     self: *Self,
     channel_id: Snowflake,
     message_id: Snowflake,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/reactions", .{ channel_id.into(), message_id.into() });
 
@@ -256,7 +253,7 @@ pub fn nukeReactionsFor(
     channel_id: Snowflake,
     message_id: Snowflake,
     emoji: Types.Emoji,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/reactions/{s}:{d}", .{
         channel_id.into(),
@@ -276,7 +273,7 @@ pub fn nukeReactionsFor(
 /// Returns a 204 empty response on success.
 /// Fires a Message Delete Gateway event.
 /// TODO: implement audit-log header?
-pub fn deleteMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn deleteMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}", .{ channel_id.into(), message_id.into() });
 
@@ -294,7 +291,7 @@ pub fn deleteMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, 
 /// Fires a Message Delete Bulk Gateway event.
 ///
 /// Any message IDs given that do not exist or are invalid will count towards the minimum and maximum message count (currently 2 and 100 respectively).
-pub fn bulkDeleteMessages(self: *Self, channel_id: Snowflake, messages: []Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn bulkDeleteMessages(self: *Self, channel_id: Snowflake, messages: []Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/bulk-delete", .{channel_id.into()});
 
@@ -318,7 +315,7 @@ pub fn bulkDeleteMessages(self: *Self, channel_id: Snowflake, messages: []Snowfl
 ///
 /// Returns a message object. Fires a Message Update Gateway event.
 /// @remarks Starting with API v10, the attachments array must contain all attachments that should be present after edit, including retained and new attachments provided in the request body.
-pub fn editMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, edit_message: Partial(Types.CreateMessage)) RequestFailedError!Result(Types.Message) {
+pub fn editMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, edit_message: Partial(Types.CreateMessage)) !Result(Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}", .{ channel_id.into(), message_id.into() });
 
@@ -335,7 +332,7 @@ pub fn editMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, ed
 /// Get a channel by ID.
 /// Returns a channel object.
 /// If the channel is a thread, a thread member object is included in the returned result.
-pub fn fetchChannel(self: *Self, channel_id: Snowflake) RequestFailedError!Result(Types.Channel) {
+pub fn fetchChannel(self: *Self, channel_id: Snowflake) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
@@ -349,7 +346,7 @@ pub fn fetchChannel(self: *Self, channel_id: Snowflake) RequestFailedError!Resul
 /// Update a channel's settings.
 /// Returns a channel on success, and a 400 BAD REQUEST on invalid parameters.
 /// All JSON parameters are optional.
-pub fn editChannel(self: *Self, channel_id: Snowflake, edit_channel: Types.ModifyChannel, reason: ?[]const u8) RequestFailedError!Result(Types.Channel) {
+pub fn editChannel(self: *Self, channel_id: Snowflake, edit_channel: Types.ModifyChannel, reason: ?[]const u8) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
@@ -367,7 +364,7 @@ pub fn editChannel(self: *Self, channel_id: Snowflake, edit_channel: Types.Modif
 /// Deleting a category does not delete its child channels; they will have their parent_id removed and a Channel Update Gateway event will fire for each of them.
 /// Returns a channel object on success.
 /// Fires a Channel Delete Gateway event (or Thread Delete if the channel was a thread).
-pub fn deleteChannel(self: *Self, channel_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn deleteChannel(self: *Self, channel_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
@@ -400,7 +397,7 @@ pub fn editChannelPermissions(
     overwrite_id: Snowflake,
     params: ModifyChannelPermissions,
     reason: ?[]const u8,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/permissions/{d}", .{ channel_id.into(), overwrite_id.into() });
 
@@ -415,7 +412,7 @@ pub fn editChannelPermissions(
 /// Returns a list of invite objects (with invite metadata) for the channel.
 /// Only usable for guild channels.
 /// Requires the `MANAGE_CHANNELS` permission.
-pub fn fetchChannelInvites(self: *Self, channel_id: Snowflake) RequestFailedError!Result([]Types.Invite) {
+pub fn fetchChannelInvites(self: *Self, channel_id: Snowflake) !Result([]Types.Invite) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/invites", .{channel_id.into()});
 
@@ -432,7 +429,7 @@ pub fn fetchChannelInvites(self: *Self, channel_id: Snowflake) RequestFailedErro
 /// All JSON parameters for this route are optional, however the request body is not.
 /// If you are not sending any fields, you still have to send an empty JSON object ({}).
 /// Returns an invite object. Fires an Invite Create Gateway event.
-pub fn createChannelInvite(self: *Self, channel_id: Snowflake, params: Types.CreateChannelInvite, reason: ?[]const u8) RequestFailedError!Result(Types.Invite) {
+pub fn createChannelInvite(self: *Self, channel_id: Snowflake, params: Types.CreateChannelInvite, reason: ?[]const u8) !Result(Types.Invite) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/invites", .{channel_id.into()});
 
@@ -451,7 +448,7 @@ pub fn createChannelInvite(self: *Self, channel_id: Snowflake, params: Types.Cre
 /// Returns a 204 empty response on success.
 /// Fires a Channel Update Gateway event.
 /// For more information about permissions, see permissions
-pub fn deleteChannelPermission(self: *Self, channel_id: Snowflake, overwrite_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn deleteChannelPermission(self: *Self, channel_id: Snowflake, overwrite_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/permissions/{d}", .{ channel_id.into(), overwrite_id.into() });
 
@@ -473,7 +470,7 @@ pub fn followAnnouncementChannel(
     channel_id: Snowflake,
     params: Types.FollowAnnouncementChannel,
     reason: ?[]const u8,
-) RequestFailedError!Result(Types.FollowedChannel) {
+) !Result(Types.FollowedChannel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/followers", .{channel_id.into()});
 
@@ -491,7 +488,7 @@ pub fn followAnnouncementChannel(
 /// Fires a Typing Start Gateway event.
 ///
 /// Generally bots should not use this route. However, if a bot is responding to a command and expects the computation to take a few seconds, this endpoint may be called to let the user know that the bot is processing their message.
-pub fn triggerTypingIndicator(self: *Self, channel_id: Snowflake) RequestFailedError!Result(void) {
+pub fn triggerTypingIndicator(self: *Self, channel_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/typing", .{channel_id.into()});
 
@@ -502,7 +499,7 @@ pub fn triggerTypingIndicator(self: *Self, channel_id: Snowflake) RequestFailedE
 }
 
 /// Returns all pinned messages in the channel as an array of message objects.
-pub fn fetchPins(self: *Self, channel_id: Snowflake) RequestFailedError!Result([]Types.Message) {
+pub fn fetchPins(self: *Self, channel_id: Snowflake) !Result([]Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins", .{channel_id.into()});
 
@@ -517,7 +514,7 @@ pub fn fetchPins(self: *Self, channel_id: Snowflake) RequestFailedError!Result([
 /// Requires the `MANAGE_MESSAGES` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Channel Pins Update Gateway event.
-pub fn pinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn pinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins/{d}", .{ channel_id.into(), message_id.into() });
 
@@ -533,7 +530,7 @@ pub fn pinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, rea
 /// Requires the `MANAGE_MESSAGES` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Channel Pins Update Gateway event.
-pub fn unpinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn unpinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins/{d}", .{ channel_id.into(), message_id.into() });
 
@@ -567,7 +564,7 @@ pub fn startThreadFromMessage(
     message_id: Snowflake,
     params: Types.StartThreadFromMessage,
     reason: ?[]const u8,
-) RequestFailedError!Result(Types.Channel) {
+) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/threads", .{ channel_id.into(), message_id.into() });
 
@@ -583,7 +580,7 @@ pub fn startThreadFromMessage(
 /// Creates a new thread that is not connected to an existing message.
 /// Returns a channel on success, and a 400 BAD REQUEST on invalid parameters.
 /// Fires a Thread Create Gateway event.
-pub fn startThread(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage, reason: ?[]const u8) RequestFailedError!Result(Types.Channel) {
+pub fn startThread(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage, reason: ?[]const u8) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
@@ -599,7 +596,7 @@ pub fn startThread(self: *Self, channel_id: Snowflake, params: Types.StartThread
 /// Creates a new thread in a forum or a media channel, and sends a message within the created thread.
 /// Returns a channel, with a nested message object, on success, and a 400 BAD REQUEST on invalid parameters.
 /// Fires a Thread Create and Message Create Gateway event.
-pub fn startThreadInForumOrMediaChannel(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage, reason: ?[]const u8) RequestFailedError!Result(Types.Channel) {
+pub fn startThreadInForumOrMediaChannel(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage, reason: ?[]const u8) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
@@ -624,7 +621,7 @@ pub fn startThreadInForumOrMediaChannelWithFiles(
     channel_id: Snowflake,
     options: StartThreadInForumOrMediaChannelWithFiles,
     reason: ?[]const u8,
-) RequestFailedError!Result(Types.Channel) {
+) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
@@ -639,7 +636,7 @@ pub fn startThreadInForumOrMediaChannelWithFiles(
 /// Adds the current user to a thread. Also requires the thread is not archived.
 /// Returns a 204 empty response on success.
 /// Fires a Thread Members Update and a Thread Create Gateway event.
-pub fn joinThread(self: *Self, channel_id: Snowflake) RequestFailedError!Result(void) {
+pub fn joinThread(self: *Self, channel_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/@me", .{channel_id.into()});
 
@@ -652,7 +649,7 @@ pub fn joinThread(self: *Self, channel_id: Snowflake) RequestFailedError!Result(
 /// Adds another member to a thread. Requires the ability to send messages in the thread. Also requires the thread is not archived.
 /// Returns a 204 empty response if the member is successfully added or was already a member of the thread.
 /// Fires a Thread Members Update Gateway event.
-pub fn addMemberToThread(self: *Self, channel_id: Snowflake, user_id: Snowflake) RequestFailedError!Result(void) {
+pub fn addMemberToThread(self: *Self, channel_id: Snowflake, user_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/{d}", .{ channel_id.into(), user_id.into() });
 
@@ -665,7 +662,7 @@ pub fn addMemberToThread(self: *Self, channel_id: Snowflake, user_id: Snowflake)
 /// Removes the current user from a thread. Also requires the thread is not archived.
 /// Returns a 204 empty response on success.
 /// Fires a Thread Members Update Gateway event.
-pub fn leaveThread(self: *Self, channel_id: Snowflake) RequestFailedError!Result(void) {
+pub fn leaveThread(self: *Self, channel_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/@me", .{channel_id.into()});
 
@@ -680,7 +677,7 @@ pub fn leaveThread(self: *Self, channel_id: Snowflake) RequestFailedError!Result
 /// Also requires the thread is not archived.
 /// Returns a 204 empty response on success.
 /// Fires a Thread Members Update Gateway event.
-pub fn removeMemberFromThread(self: *Self, channel_id: Snowflake, user_id: Snowflake) RequestFailedError!Result(void) {
+pub fn removeMemberFromThread(self: *Self, channel_id: Snowflake, user_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/{d}", .{ channel_id.into(), user_id.into() });
 
@@ -698,7 +695,7 @@ pub fn fetchThreadMember(
     channel_id: Snowflake,
     user_id: Snowflake,
     with_member: bool,
-) RequestFailedError!Result(Types.ThreadMember) {
+) !Result(Types.ThreadMember) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/{d}?with_member={s}", .{
         channel_id.into(),
@@ -720,7 +717,7 @@ pub fn fetchThreadMember(
 pub fn fetchThreadMembers(
     self: *Self,
     channel_id: Snowflake,
-) RequestFailedError!Result([]Types.ThreadMember) {
+) !Result([]Types.ThreadMember) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/", .{channel_id.into()});
 
@@ -737,7 +734,7 @@ pub fn fetchThreadMembers(
 /// Threads are ordered by `archive_timestamp`, in descending order.
 /// Requires the `READ_MESSAGE_HISTORY` permission.
 /// TODO: implement query string params
-pub fn listPublicArchivedThreads(self: *Self, channel_id: Snowflake) RequestFailedError!Result(Types.ArchivedThreads) {
+pub fn listPublicArchivedThreads(self: *Self, channel_id: Snowflake) !Result(Types.ArchivedThreads) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads/archived/public", .{channel_id.into()});
 
@@ -752,7 +749,7 @@ pub fn listPublicArchivedThreads(self: *Self, channel_id: Snowflake) RequestFail
 /// Threads are ordered by `archive_timestamp`, in descending order.
 /// Requires both the `READ_MESSAGE_HISTORY` and `MANAGE_THREADS` permissions.
 /// TODO: implement query string params
-pub fn listPrivateArchivedThreads(self: *Self, channel_id: Snowflake) RequestFailedError!Result(Types.ArchivedThreads) {
+pub fn listPrivateArchivedThreads(self: *Self, channel_id: Snowflake) !Result(Types.ArchivedThreads) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads/archived/private", .{channel_id.into()});
 
@@ -767,7 +764,7 @@ pub fn listPrivateArchivedThreads(self: *Self, channel_id: Snowflake) RequestFai
 /// Threads are ordered by their id, in descending order.
 /// Requires the `READ_MESSAGE_HISTORY` permission.
 /// TODO: implement query string params
-pub fn listMyPrivateArchivedThreads(self: *Self, channel_id: Snowflake) RequestFailedError!Result(Types.ArchivedThreads) {
+pub fn listMyPrivateArchivedThreads(self: *Self, channel_id: Snowflake) !Result(Types.ArchivedThreads) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/users/@me/threads/archived/private", .{channel_id.into()});
 
@@ -779,14 +776,14 @@ pub fn listMyPrivateArchivedThreads(self: *Self, channel_id: Snowflake) RequestF
 }
 
 /// perhaps they abused this endpoint so it remains with no documentation - Yuzu
-pub fn createChannel(self: *Self, guild_id: Snowflake, create_channel: Types.CreateGuildChannel) RequestFailedError!Result(Types.Channel) {
+pub fn createChannel(self: *Self, guild_id: Snowflake, create_channel: Types.CreateGuildChannel) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/channels", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
-    const res = try req.post(Types.Channel, path, create_channel);
+    const res = try req.post(self.allocator, Types.Channel, path, create_channel);
     return res;
 }
 
@@ -795,7 +792,7 @@ pub fn createChannel(self: *Self, guild_id: Snowflake, create_channel: Types.Cre
 /// Method to fetch a guild
 /// Returns the guild object for the given id.
 /// If `with_counts` is set to true, this endpoint will also return `approximate_member_count` and `approximate_presence_count` for the guild.
-pub fn fetchGuild(self: *Self, guild_id: Snowflake, with_counts: ?bool) RequestFailedError!Result(Types.Guild) {
+pub fn fetchGuild(self: *Self, guild_id: Snowflake, with_counts: ?bool) !Result(Types.Guild) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}", .{guild_id.into()});
 
@@ -810,7 +807,7 @@ pub fn fetchGuild(self: *Self, guild_id: Snowflake, with_counts: ?bool) RequestF
 
 /// Method to fetch a guild preview
 /// Returns the guild preview object for the given id. If the user is not in the guild, then the guild must be discoverable.
-pub fn fetchGuildPreview(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Types.GuildPreview) {
+pub fn fetchGuildPreview(self: *Self, guild_id: Snowflake) !Result(Types.GuildPreview) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/preview", .{guild_id.into()});
 
@@ -824,7 +821,7 @@ pub fn fetchGuildPreview(self: *Self, guild_id: Snowflake) RequestFailedError!Re
 /// Method to fetch a guild's channels
 /// Returns a list of guild channel objects. Does not include threads.
 /// TODO: implement query string parameters
-pub fn fetchGuildChannels(self: *Self, guild_id: Snowflake) RequestFailedError!Result([]Types.Channel) {
+pub fn fetchGuildChannels(self: *Self, guild_id: Snowflake) !Result([]Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/channels", .{guild_id.into()});
 
@@ -842,7 +839,7 @@ pub fn fetchGuildChannels(self: *Self, guild_id: Snowflake) RequestFailedError!R
 /// Setting `MANAGE_ROLES` permission in channels is only possible for guild administrators.
 /// Returns the new channel object on success.
 /// Fires a Channel Create Gateway event.
-pub fn createGuildChannel(self: *Self, guild_id: Snowflake, create_guild_channel: Types.CreateGuildChannel) RequestFailedError!Result(Types.Channel) {
+pub fn createGuildChannel(self: *Self, guild_id: Snowflake, create_guild_channel: Types.CreateGuildChannel) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/channels", .{guild_id.into()});
 
@@ -859,7 +856,7 @@ pub fn createGuildChannel(self: *Self, guild_id: Snowflake, create_guild_channel
 /// If setting permission overwrites, only permissions your bot has in the guild can be allowed/denied.
 /// Setting `MANAGE_ROLES` permission in channels is only possible for guild administrators.
 /// Returns the new channel object on success. Fires a Channel Create Gateway event.
-pub fn editGuildChannelPositions(self: *Self, guild_id: Snowflake, edit_guild_channel: Types.ModifyGuildChannelPositions) RequestFailedError!Result(Types.Channel) {
+pub fn editGuildChannelPositions(self: *Self, guild_id: Snowflake, edit_guild_channel: Types.ModifyGuildChannelPositions) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/channels", .{guild_id.into()});
 
@@ -872,7 +869,7 @@ pub fn editGuildChannelPositions(self: *Self, guild_id: Snowflake, edit_guild_ch
 /// Method to get a guild's active threads
 /// Returns all active threads in the guild, including public and private threads.
 /// Threads are ordered by their `id`, in descending order.
-pub fn fetchGuildActiveThreads(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Types.Channel) {
+pub fn fetchGuildActiveThreads(self: *Self, guild_id: Snowflake) !Result(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/threads/active", .{guild_id.into()});
 
@@ -885,7 +882,7 @@ pub fn fetchGuildActiveThreads(self: *Self, guild_id: Snowflake) RequestFailedEr
 
 /// Method to get a member
 /// Returns a guild member object for the specified user.
-pub fn fetchMember(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFailedError!Result(Types.Member) {
+pub fn fetchMember(self: *Self, guild_id: Snowflake, user_id: Snowflake) !Result(Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -905,7 +902,7 @@ pub const ListGuildMembersQuery = struct {
 
 /// Method to get the members of a guild
 /// Returns a list of guild member objects that are members of the guild.
-pub fn fetchMembers(self: *Self, guild_id: Snowflake, query: ListGuildMembersQuery) RequestFailedError!Result([]Types.Member) {
+pub fn fetchMembers(self: *Self, guild_id: Snowflake, query: ListGuildMembersQuery) !Result([]Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members", .{guild_id.into()});
 
@@ -928,7 +925,7 @@ pub const SearchGuildMembersQuery = struct {
 
 /// Method to find members
 /// Returns a list of guild member objects whose username or nickname starts with a provided string.
-pub fn searchMembers(self: *Self, guild_id: Snowflake, query: SearchGuildMembersQuery) RequestFailedError!Result([]Types.Member) {
+pub fn searchMembers(self: *Self, guild_id: Snowflake, query: SearchGuildMembersQuery) !Result([]Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/search", .{
         guild_id.into(),
@@ -950,7 +947,7 @@ pub fn searchMembers(self: *Self, guild_id: Snowflake, query: SearchGuildMembers
 ///
 /// For guilds with Membership Screening enabled, this endpoint will default to adding new members as pending in the guild member object.
 /// Members that are pending will have to complete membership screening before they become full members that can talk.
-pub fn addMember(self: *Self, guild_id: Snowflake, user_id: Snowflake, credentials: Types.AddGuildMember) RequestFailedError!?Result(Types.Member) {
+pub fn addMember(self: *Self, guild_id: Snowflake, user_id: Snowflake, credentials: Types.AddGuildMember) !?Result(Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -972,7 +969,7 @@ pub fn editMember(
     user_id: Snowflake,
     attributes: Types.ModifyGuildMember,
     reason: ?[]const u8,
-) RequestFailedError!?Result(Types.Member) {
+) !?Result(Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -985,7 +982,7 @@ pub fn editMember(
     return res;
 }
 
-pub fn editCurrentMember(self: *Self, guild_id: Snowflake, attributes: Types.ModifyGuildMember, reason: ?[]const u8) RequestFailedError!?Result(Types.Member) {
+pub fn editCurrentMember(self: *Self, guild_id: Snowflake, attributes: Types.ModifyGuildMember, reason: ?[]const u8) !?Result(Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/@me", .{guild_id.into()});
 
@@ -999,7 +996,7 @@ pub fn editCurrentMember(self: *Self, guild_id: Snowflake, attributes: Types.Mod
 }
 
 /// change's someones's nickname
-pub fn changeNickname(self: *Self, guild_id: Snowflake, user_id: Snowflake, nick: []const u8, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn changeNickname(self: *Self, guild_id: Snowflake, user_id: Snowflake, nick: []const u8, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -1013,7 +1010,7 @@ pub fn changeNickname(self: *Self, guild_id: Snowflake, user_id: Snowflake, nick
 }
 
 /// change's someones's nickname
-pub fn changeMyNickname(self: *Self, guild_id: Snowflake, nick: []const u8, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn changeMyNickname(self: *Self, guild_id: Snowflake, nick: []const u8, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/@me", .{guild_id.into()});
 
@@ -1035,7 +1032,7 @@ pub fn addRole(
     user_id: Snowflake,
     role_id: Snowflake,
     reason: ?[]const u8,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}/roles/{d}", .{
         guild_id.into(),
@@ -1061,7 +1058,7 @@ pub fn removeRole(
     user_id: Snowflake,
     role_id: Snowflake,
     reason: ?[]const u8,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}/roles/{d}", .{
         guild_id.into(),
@@ -1086,7 +1083,7 @@ pub fn kickMember(
     guild_id: Snowflake,
     user_id: Snowflake,
     reason: ?[]const u8,
-) RequestFailedError!Result(void) {
+) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -1113,7 +1110,7 @@ pub const GetGuildBansQuery = struct {
 pub fn fetchBans(
     self: *Self,
     guild_id: Snowflake,
-) RequestFailedError!Result([]Types.Ban) {
+) !Result([]Types.Ban) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans", .{guild_id.into()});
 
@@ -1126,7 +1123,7 @@ pub fn fetchBans(
 
 /// Returns a ban object for the given user or a 404 not found if the ban cannot be found.
 /// Requires the `BAN_MEMBERS` permission.
-pub fn fetchBan(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFailedError!Result(Types.Ban) {
+pub fn fetchBan(self: *Self, guild_id: Snowflake, user_id: Snowflake) !Result(Types.Ban) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -1141,7 +1138,7 @@ pub fn fetchBan(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFai
 /// Requires the `BAN_MEMBERS` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Guild Ban Add Gateway event.
-pub fn ban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn ban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -1156,7 +1153,7 @@ pub fn ban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]cons
 /// Remove the ban for a user. Requires the `BAN_MEMBERS` permissions.
 /// Returns a 204 empty response on success.
 /// Fires a Guild Ban Remove Gateway event.
-pub fn unban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn unban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
@@ -1172,7 +1169,7 @@ pub fn unban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]co
 /// Requires both the `BAN_MEMBERS` and `MANAGE_GUILD` permissions.
 /// Returns a 200 response on success, including the fields banned_users with the IDs of the banned users
 /// and failed_users with IDs that could not be banned or were already banned.
-pub fn bulkBan(self: *Self, guild_id: Snowflake, bulk_ban: Types.CreateGuildBan, reason: ?[]const u8) RequestFailedError!Result(Types.BulkBan) {
+pub fn bulkBan(self: *Self, guild_id: Snowflake, bulk_ban: Types.CreateGuildBan, reason: ?[]const u8) !Result(Types.BulkBan) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bulk-ban", .{guild_id.into()});
 
@@ -1189,7 +1186,7 @@ pub fn bulkBan(self: *Self, guild_id: Snowflake, bulk_ban: Types.CreateGuildBan,
 /// Delete a guild permanently. User must be owner.
 /// Returns 204 No Content on success.
 /// Fires a Guild Delete Gateway event.
-pub fn deleteGuild(self: *Self, guild_id: Snowflake) RequestFailedError!Result(void) {
+pub fn deleteGuild(self: *Self, guild_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}", .{guild_id.into()});
 
@@ -1203,7 +1200,7 @@ pub fn deleteGuild(self: *Self, guild_id: Snowflake) RequestFailedError!Result(v
 /// Modify a guild's settings. Requires the `MANAGE_GUILD` permission.
 /// Returns the updated guild object on success.
 /// Fires a Guild Update Gateway event.
-pub fn editGuild(self: *Self, guild_id: Snowflake, edit_guild: Types.ModifyGuild) RequestFailedError!Result(Types.Guild) {
+pub fn editGuild(self: *Self, guild_id: Snowflake, edit_guild: Types.ModifyGuild) !Result(Types.Guild) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}", .{guild_id.into()});
 
@@ -1214,7 +1211,7 @@ pub fn editGuild(self: *Self, guild_id: Snowflake, edit_guild: Types.ModifyGuild
     return res;
 }
 
-pub fn createGuild(self: *Self, create_guild: Partial(Types.CreateGuild)) RequestFailedError!Result(Types.Guild) {
+pub fn createGuild(self: *Self, create_guild: Partial(Types.CreateGuild)) !Result(Types.Guild) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds", .{});
 
@@ -1230,7 +1227,7 @@ pub fn createGuild(self: *Self, create_guild: Partial(Types.CreateGuild)) Reques
 /// Returns the new role object on success.
 /// Fires a Guild Role Create Gateway event.
 /// All JSON params are optional.
-pub fn createRole(self: *Self, guild_id: Snowflake, create_role: Partial(Types.CreateGuildRole), reason: ?[]const u8) RequestFailedError!Result(Types.Role) {
+pub fn createRole(self: *Self, guild_id: Snowflake, create_role: Partial(Types.CreateGuildRole), reason: ?[]const u8) !Result(Types.Role) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles", .{guild_id.into()});
 
@@ -1253,7 +1250,7 @@ pub fn editRole(
     role_id: Snowflake,
     edit_role: Partial(Types.ModifyGuildRole),
     reason: ?[]const u8,
-) RequestFailedError!Result(Types.Role) {
+) !Result(Types.Role) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles/{d}", .{ guild_id.into(), role_id.into() });
 
@@ -1270,7 +1267,7 @@ pub fn editRole(
 /// Requires guild ownership.
 /// Returns the updated level on success.
 /// Fires a Guild Update Gateway event.
-pub fn modifyMFALevel(self: *Self, guild_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn modifyMFALevel(self: *Self, guild_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/mfa", .{guild_id.into()});
 
@@ -1286,7 +1283,7 @@ pub fn modifyMFALevel(self: *Self, guild_id: Snowflake, reason: ?[]const u8) Req
 /// Requires the `MANAGE_ROLES` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Guild Role Delete Gateway event.
-pub fn deleteRole(self: *Self, guild_id: Snowflake, role_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn deleteRole(self: *Self, guild_id: Snowflake, role_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles/{d}", .{ guild_id.into(), role_id.into() });
 
@@ -1303,7 +1300,7 @@ pub fn deleteRole(self: *Self, guild_id: Snowflake, role_id: Snowflake, reason: 
 /// By default, prune will not remove users with roles.
 /// You can optionally include specific roles in your prune by providing the include_roles parameter.
 /// Any inactive user that has a subset of the provided role(s) will be counted in the prune and users with additional roles will not.
-pub fn fetchPruneCount(self: *Self, guild_id: Snowflake, query: Types.GetGuildPruneCountQuery) RequestFailedError!Result(struct { pruned: isize }) {
+pub fn fetchPruneCount(self: *Self, guild_id: Snowflake, query: Types.GetGuildPruneCountQuery) !Result(struct { pruned: isize }) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/prune", .{guild_id.into()});
 
@@ -1331,7 +1328,7 @@ pub fn beginGuildPrune(
     guild_id: Snowflake,
     params: Types.BeginGuildPrune,
     reason: ?[]const u8,
-) RequestFailedError!Result(struct { pruned: isize }) {
+) !Result(struct { pruned: isize }) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/prune", .{guild_id.into()});
 
@@ -1346,7 +1343,7 @@ pub fn beginGuildPrune(
 
 /// Returns a list of voice region objects for the guild.
 /// Unlike the similar /voice route, this returns VIP servers when the guild is VIP-enabled.
-pub fn fetchVoiceRegion(self: *Self, guild_id: Snowflake) RequestFailedError!Result([]Types.VoiceRegion) {
+pub fn fetchVoiceRegion(self: *Self, guild_id: Snowflake) !Result([]Types.VoiceRegion) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/regions", .{guild_id.into()});
 
@@ -1359,7 +1356,7 @@ pub fn fetchVoiceRegion(self: *Self, guild_id: Snowflake) RequestFailedError!Res
 
 /// Returns a list of invite objects (with invite metadata) for the guild.
 /// Requires the `MANAGE_GUILD` permission.
-pub fn fetchInvites(self: *Self, guild_id: Snowflake) RequestFailedError!Result([]Types.Invite) {
+pub fn fetchInvites(self: *Self, guild_id: Snowflake) !Result([]Types.Invite) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/invites", .{guild_id.into()});
 
@@ -1372,7 +1369,7 @@ pub fn fetchInvites(self: *Self, guild_id: Snowflake) RequestFailedError!Result(
 
 /// Returns a list of integration objects for the guild.
 /// Requires the `MANAGE_GUILD` permission.
-pub fn fetchIntegrations(self: *Self, guild_id: Snowflake) RequestFailedError!Result([]Types.Integration) {
+pub fn fetchIntegrations(self: *Self, guild_id: Snowflake) !Result([]Types.Integration) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/integrations", .{guild_id.into()});
 
@@ -1385,7 +1382,7 @@ pub fn fetchIntegrations(self: *Self, guild_id: Snowflake) RequestFailedError!Re
 
 /// Returns a list of integration objects for the guild.
 /// Requires the `MANAGE_GUILD` permission.
-pub fn deleteIntegration(self: *Self, guild_id: Snowflake, integration_id: Snowflake, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn deleteIntegration(self: *Self, guild_id: Snowflake, integration_id: Snowflake, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/integrations/{d}", .{
         guild_id.into(),
@@ -1402,7 +1399,7 @@ pub fn deleteIntegration(self: *Self, guild_id: Snowflake, integration_id: Snowf
 
 /// Returns a guild widget settings object.
 /// Requires the `MANAGE_GUILD` permission.
-pub fn fetchWidgetSettings(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Types.GuildWidgetSettings) {
+pub fn fetchWidgetSettings(self: *Self, guild_id: Snowflake) !Result(Types.GuildWidgetSettings) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/widget", .{guild_id.into()});
 
@@ -1418,7 +1415,7 @@ pub fn fetchWidgetSettings(self: *Self, guild_id: Snowflake) RequestFailedError!
 /// Requires the `MANAGE_GUILD` permission.
 /// Returns the updated guild widget settings object.
 /// Fires a Guild Update Gateway event.
-pub fn editWidget(self: *Self, guild_id: Snowflake, attributes: Partial(Types.GuildWidget), reason: ?[]const u8) RequestFailedError!Result(Types.GuildWidget) {
+pub fn editWidget(self: *Self, guild_id: Snowflake, attributes: Partial(Types.GuildWidget), reason: ?[]const u8) !Result(Types.GuildWidget) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/widget", .{guild_id.into()});
 
@@ -1433,7 +1430,7 @@ pub fn editWidget(self: *Self, guild_id: Snowflake, attributes: Partial(Types.Gu
 
 /// Returns the widget for the guild.
 /// Fires an Invite Create Gateway event when an invite channel is defined and a new Invite is generated.
-pub fn fetchWidget(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Types.GuildWidget) {
+pub fn fetchWidget(self: *Self, guild_id: Snowflake) !Result(Types.GuildWidget) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/widget.json", .{guild_id.into()});
 
@@ -1446,7 +1443,7 @@ pub fn fetchWidget(self: *Self, guild_id: Snowflake) RequestFailedError!Result(T
 
 /// Returns a partial invite object for guilds with that feature enabled.
 /// Requires the `MANAGE_GUILD` permission. code will be null if a vanity url for the guild is not set.
-pub fn fetchVanityUrl(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Partial(Types.Invite)) {
+pub fn fetchVanityUrl(self: *Self, guild_id: Snowflake) !Result(Partial(Types.Invite)) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/vanity-url", .{guild_id.into()});
 
@@ -1459,7 +1456,7 @@ pub fn fetchVanityUrl(self: *Self, guild_id: Snowflake) RequestFailedError!Resul
 
 /// Returns a PNG image widget for the guild.
 /// Requires no permissions or authentication.
-pub fn fetchWidgetImage(self: *Self, guild_id: Snowflake) RequestFailedError![]const u8 {
+pub fn fetchWidgetImage(self: *Self, guild_id: Snowflake) ![]const u8 {
     _ = self;
     _ = guild_id;
     @panic("unimplemented");
@@ -1469,7 +1466,7 @@ pub fn fetchWidgetImage(self: *Self, guild_id: Snowflake) RequestFailedError![]c
 /// Requires the `MANAGE_GUILD` permission.
 /// Returns the updated Welcome Screen object. May fire a Guild Update Gateway event.
 /// TODO: add query params
-pub fn fetchWelcomeScreen(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Types.WelcomeScreen) {
+pub fn fetchWelcomeScreen(self: *Self, guild_id: Snowflake) !Result(Types.WelcomeScreen) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/welcome-screen", .{guild_id.into()});
 
@@ -1481,7 +1478,7 @@ pub fn fetchWelcomeScreen(self: *Self, guild_id: Snowflake) RequestFailedError!R
 }
 
 /// Returns the Onboarding object for the guild.
-pub fn fetchOnboarding(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Types.GuildOnboarding) {
+pub fn fetchOnboarding(self: *Self, guild_id: Snowflake) !Result(Types.GuildOnboarding) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/onboarding", .{guild_id.into()});
 
@@ -1498,7 +1495,7 @@ pub fn editOnboarding(
     guild_id: Snowflake,
     onboarding: Types.GuildOnboardingPromptOption,
     reason: ?[]const u8,
-) RequestFailedError!Result(Types.GuildOnboarding) {
+) !Result(Types.GuildOnboarding) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/onboarding", .{guild_id.into()});
 
@@ -1515,7 +1512,7 @@ pub fn editOnboarding(
 
 /// Returns the user object of the requester's account.
 /// For OAuth2, this requires the identify scope, which will return the object without an email, and optionally the email scope, which returns the object with an email if the user has one.
-pub fn fetchMyself(self: *Self) RequestFailedError!Result(Types.User) {
+pub fn fetchMyself(self: *Self) !Result(Types.User) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
@@ -1523,7 +1520,7 @@ pub fn fetchMyself(self: *Self) RequestFailedError!Result(Types.User) {
 }
 
 /// Returns a user object for a given user ID.
-pub fn fetchUser(self: *Self, user_id: Snowflake) RequestFailedError!Result(Types.User) {
+pub fn fetchUser(self: *Self, user_id: Snowflake) !Result(Types.User) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/users/{d}", .{user_id.into()});
 
@@ -1535,7 +1532,7 @@ pub fn fetchUser(self: *Self, user_id: Snowflake) RequestFailedError!Result(Type
 }
 
 /// Returns a user object for a given user ID.
-pub fn editMyself(self: *Self, params: Types.ModifyCurrentUser) RequestFailedError!Result(Types.User) {
+pub fn editMyself(self: *Self, params: Types.ModifyCurrentUser) !Result(Types.User) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
@@ -1545,7 +1542,7 @@ pub fn editMyself(self: *Self, params: Types.ModifyCurrentUser) RequestFailedErr
 
 /// Returns a list of partial guild objects the current user is a member of.
 /// For OAuth2, requires the guilds scope.
-pub fn fetchMyGuilds(self: *Self, params: Types.ModifyCurrentUser) RequestFailedError!Result([]Partial(Types.Guild)) {
+pub fn fetchMyGuilds(self: *Self, params: Types.ModifyCurrentUser) !Result([]Partial(Types.Guild)) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
@@ -1555,7 +1552,7 @@ pub fn fetchMyGuilds(self: *Self, params: Types.ModifyCurrentUser) RequestFailed
 
 /// Returns a guild member object for the current user.
 /// Requires the guilds.members.read OAuth2 scope.
-pub fn fetchMyMember(self: *Self, guild_id: Snowflake) RequestFailedError!Result(Types.Member) {
+pub fn fetchMyMember(self: *Self, guild_id: Snowflake) !Result(Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/users/@me/guilds/{d}/member", .{guild_id.into()});
 
@@ -1567,7 +1564,7 @@ pub fn fetchMyMember(self: *Self, guild_id: Snowflake) RequestFailedError!Result
 }
 
 /// Leave a guild. Returns a 204 empty response on success. Fires a Guild Delete Gateway event and a Guild Member Remove Gateway event.
-pub fn leaveGuild(self: *Self, guild_id: Snowflake) RequestFailedError!Result(void) {
+pub fn leaveGuild(self: *Self, guild_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/users/@me/guilds/{d}", .{guild_id.into()});
 
@@ -1579,7 +1576,7 @@ pub fn leaveGuild(self: *Self, guild_id: Snowflake) RequestFailedError!Result(vo
 
 /// Create a new DM channel with a user.
 /// Returns a DM channel object (if one already exists, it will be returned instead).
-pub fn dm(self: *Self, whom: Snowflake) RequestFailedError!Result(Types.Channel) {
+pub fn dm(self: *Self, whom: Snowflake) !Result(Types.Channel) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
@@ -1590,7 +1587,7 @@ pub fn dm(self: *Self, whom: Snowflake) RequestFailedError!Result(Types.Channel)
 /// Returns a DM channel object.
 /// This endpoint was intended to be used with the now-deprecated GameBridge SDK.
 /// Fires a Channel Create Gateway event.
-pub fn groupDm(self: *Self, access_tokens: [][]const u8, whose: []struct { Snowflake, []const u8 }) RequestFailedError!Result(Types.Channel) {
+pub fn groupDm(self: *Self, access_tokens: [][]const u8, whose: []struct { Snowflake, []const u8 }) !Result(Types.Channel) {
     _ = self;
     _ = access_tokens;
     _ = whose;
@@ -1598,7 +1595,7 @@ pub fn groupDm(self: *Self, access_tokens: [][]const u8, whose: []struct { Snowf
 }
 
 /// Returns a list of connection objects. Requires the connections OAuth2 scope.
-pub fn fetchMyConnections(self: *Self) RequestFailedError!Result([]Types.Connection) {
+pub fn fetchMyConnections(self: *Self) !Result([]Types.Connection) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
@@ -1606,12 +1603,12 @@ pub fn fetchMyConnections(self: *Self) RequestFailedError!Result([]Types.Connect
     return connections;
 }
 
-pub fn fetchMyApplicationConnection(self: *Self) RequestFailedError!void {
+pub fn fetchMyApplicationConnection(self: *Self) !void {
     _ = self;
     @panic("unimplemented\n");
 }
 
-pub fn updateMyApplicationConnection(self: *Self) RequestFailedError!void {
+pub fn updateMyApplicationConnection(self: *Self) !void {
     _ = self;
     @panic("unimplemented\n");
 }
@@ -1620,7 +1617,7 @@ pub fn updateMyApplicationConnection(self: *Self) RequestFailedError!void {
 
 /// Returns a list of emoji objects for the given guild.
 /// Includes `user` fields if the bot has the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
-pub fn fetchEmojis(self: *Self, guild_id: Snowflake) RequestFailedError!Result([]Types.Emoji) {
+pub fn fetchEmojis(self: *Self, guild_id: Snowflake) !Result([]Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
 
@@ -1633,7 +1630,7 @@ pub fn fetchEmojis(self: *Self, guild_id: Snowflake) RequestFailedError!Result([
 
 /// Returns an emoji object for the given guild and emoji IDs.
 /// Includes the `user` field if the bot has the `MANAGE_GUILD_EXPRESSIONS` permission, or if the bot created the emoji and has the the `CREATE_GUILD_EXPRESSIONS` permission.
-pub fn fetchEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) RequestFailedError!Result(Types.Emoji) {
+pub fn fetchEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) !Result(Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis/{d}", .{ guild_id.into(), emoji_id.into() });
 
@@ -1648,7 +1645,7 @@ pub fn fetchEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) Request
 /// Requires the `CREATE_GUILD_EXPRESSIONS` permission.
 /// Returns the new emoji object on success.
 /// Fires a Guild Emojis Update Gateway event.
-pub fn createEmoji(self: *Self, guild_id: Snowflake, emoji: Types.CreateGuildEmoji) RequestFailedError!Result(Types.Emoji) {
+pub fn createEmoji(self: *Self, guild_id: Snowflake, emoji: Types.CreateGuildEmoji) !Result(Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
 
@@ -1663,7 +1660,7 @@ pub fn createEmoji(self: *Self, guild_id: Snowflake, emoji: Types.CreateGuildEmo
 /// For other emojis, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
 /// Returns the updated emoji object on success.
 /// Fires a Guild Emojis Update Gateway event.
-pub fn editEmoji(self: *Self, guild_id: Snowflake, emoji: Types.ModifyGuildEmoji) RequestFailedError!Result(Types.Emoji) {
+pub fn editEmoji(self: *Self, guild_id: Snowflake, emoji: Types.ModifyGuildEmoji) !Result(Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
 
@@ -1678,7 +1675,7 @@ pub fn editEmoji(self: *Self, guild_id: Snowflake, emoji: Types.ModifyGuildEmoji
 /// For other emojis, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
 /// Returns 204 No Content on success.
 /// Fires a Guild Emojis Update Gateway event.
-pub fn deleteEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) RequestFailedError!Result(void) {
+pub fn deleteEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis/{d}", .{ guild_id.into(), emoji_id.into() });
 
@@ -1690,7 +1687,7 @@ pub fn deleteEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) Reques
 
 /// Returns an object containing a list of emoji objects for the given application under the `items` key.
 /// Includes a `user` object for the team member that uploaded the emoji from the app's settings, or for the bot user if uploaded using the API.
-pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) RequestFailedError!Result([]Types.Emoji) {
+pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) !Result([]Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
 
@@ -1702,7 +1699,7 @@ pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) RequestFai
 }
 
 /// Returns an emoji object for the given application and emoji IDs. Includes the user field.
-pub fn fetchApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: Snowflake) RequestFailedError!Result(Types.Emoji) {
+pub fn fetchApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: Snowflake) !Result(Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis/{d}", .{ application_id.into(), emoji_id.into() });
 
@@ -1714,7 +1711,7 @@ pub fn fetchApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: S
 }
 
 /// Create a new emoji for the application. Returns the new emoji object on success.
-pub fn createApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types.CreateGuildEmoji) RequestFailedError!Result(Types.Emoji) {
+pub fn createApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types.CreateGuildEmoji) !Result(Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
 
@@ -1725,7 +1722,7 @@ pub fn createApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Typ
 }
 
 /// Modify the given emoji. Returns the updated emoji object on success.
-pub fn editApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types.ModifyGuildEmoji) RequestFailedError!Result(Types.Emoji) {
+pub fn editApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types.ModifyGuildEmoji) !Result(Types.Emoji) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
 
@@ -1736,7 +1733,7 @@ pub fn editApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types
 }
 
 /// Delete the given emoji. Returns 204 No Content on success.
-pub fn deleteApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: Snowflake) RequestFailedError!Result(void) {
+pub fn deleteApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis/{d}", .{ application_id.into(), emoji_id.into() });
 
@@ -1749,7 +1746,7 @@ pub fn deleteApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: 
 // start invites
 
 /// Returns an invite object for the given code.
-pub fn fetchInvite(self: *Self, code: []const u8) RequestFailedError!Result(Types.Invite) {
+pub fn fetchInvite(self: *Self, code: []const u8) !Result(Types.Invite) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/invites/{s}", .{code});
 
@@ -1763,7 +1760,7 @@ pub fn fetchInvite(self: *Self, code: []const u8) RequestFailedError!Result(Type
 /// Requires the `MANAGE_CHANNELS` permission on the channel this invite belongs to, or `MANAGE_GUILD` to remove any invite across the guild.
 /// Returns an invite object on success.
 /// Fires an Invite Delete Gateway event.
-pub fn deleteInvite(self: *Self, code: []const u8, reason: ?[]const u8) RequestFailedError!Result(void) {
+pub fn deleteInvite(self: *Self, code: []const u8, reason: ?[]const u8) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/invites/{s}", .{code});
 
@@ -1783,7 +1780,7 @@ pub fn fetchAnswerVoters(
     channel_id: Snowflake,
     poll_id: Snowflake,
     answer_id: Snowflake,
-) RequestFailedError!Result([]Types.User) {
+) !Result([]Types.User) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/polls/{d}/answers/{d}", .{
         channel_id.into(),
@@ -1807,7 +1804,7 @@ pub fn endPoll(
     self: *Self,
     channel_id: Snowflake,
     poll_id: Snowflake,
-) RequestFailedError!Result(Types.Message) {
+) !Result(Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/polls/{d}/expire", .{ channel_id.into(), poll_id.into() });
 
@@ -1819,7 +1816,7 @@ pub fn endPoll(
 }
 
 /// Returns the application object associated with the requesting bot user.
-pub fn fetchMyApplication(self: *Self) RequestFailedError!Result(Types.Application) {
+pub fn fetchMyApplication(self: *Self) !Result(Types.Application) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
@@ -1830,7 +1827,7 @@ pub fn fetchMyApplication(self: *Self) RequestFailedError!Result(Types.Applicati
 /// Edit properties of the app associated with the requesting bot user.
 /// Only properties that are passed will be updated.
 /// Returns the updated application object on success.
-pub fn editMyApplication(self: *Self, params: Types.ModifyApplication) RequestFailedError!Result(Types.Application) {
+pub fn editMyApplication(self: *Self, params: Types.ModifyApplication) !Result(Types.Application) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
@@ -1840,7 +1837,7 @@ pub fn editMyApplication(self: *Self, params: Types.ModifyApplication) RequestFa
 
 /// Returns a serialized activity instance, if it exists.
 /// Useful for preventing unwanted activity sessions.
-pub fn fetchActivityInstance(self: *Self, application_id: Snowflake, insance: []const u8) RequestFailedError!Result(Types.ActivityInstance) {
+pub fn fetchActivityInstance(self: *Self, application_id: Snowflake, insance: []const u8) !Result(Types.ActivityInstance) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/activity-instances/{s}", .{ application_id.into(), insance });
 
@@ -1852,7 +1849,7 @@ pub fn fetchActivityInstance(self: *Self, application_id: Snowflake, insance: []
 }
 
 /// Returns a list of application role connection metadata objects for the given application.
-pub fn fetchApplicationRoleConnectionMetadataRecords(self: *Self, application_id: Snowflake) RequestFailedError!Result([]Types.ApplicationRoleConnection) {
+pub fn fetchApplicationRoleConnectionMetadataRecords(self: *Self, application_id: Snowflake) !Result([]Types.ApplicationRoleConnection) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/role-connection/metadata", .{application_id.into()});
 
@@ -1863,7 +1860,7 @@ pub fn fetchApplicationRoleConnectionMetadataRecords(self: *Self, application_id
 }
 
 /// Updates and returns a list of application role connection metadata objects for the given application.
-pub fn updateApplicationRoleConnectionMetadataRecords(self: *Self, application_id: Snowflake) RequestFailedError!Result([]Types.ApplicationRoleConnection) {
+pub fn updateApplicationRoleConnectionMetadataRecords(self: *Self, application_id: Snowflake) !Result([]Types.ApplicationRoleConnection) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/role-connection/metadata", .{application_id.into()});
 
@@ -1874,7 +1871,7 @@ pub fn updateApplicationRoleConnectionMetadataRecords(self: *Self, application_i
 }
 
 /// Returns all entitlements for a given app, active and expired.
-pub fn fetchEntitlements(self: *Self, application_id: Snowflake) RequestFailedError!Result([]Types.Entitlement) {
+pub fn fetchEntitlements(self: *Self, application_id: Snowflake) !Result([]Types.Entitlement) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
 
@@ -1886,7 +1883,7 @@ pub fn fetchEntitlements(self: *Self, application_id: Snowflake) RequestFailedEr
 }
 
 /// Returns an entitlement.
-pub fn fetchEntitlement(self: *Self, application_id: Snowflake, entitlement_id: Snowflake) RequestFailedError!Result(Types.Entitlement) {
+pub fn fetchEntitlement(self: *Self, application_id: Snowflake, entitlement_id: Snowflake) !Result(Types.Entitlement) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements/{d}", .{ application_id.into(), entitlement_id.into() });
 
@@ -1901,7 +1898,7 @@ pub fn fetchEntitlement(self: *Self, application_id: Snowflake, entitlement_id: 
 /// The entitlement will have consumed: true when using List Entitlements.
 ///
 /// Returns a 204 No Content on success.
-pub fn consumeEntitlement(self: *Self, application_id: Snowflake, entitlement_id: Snowflake) RequestFailedError!Result(void) {
+pub fn consumeEntitlement(self: *Self, application_id: Snowflake, entitlement_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements/{d}/consume", .{ application_id.into(), entitlement_id.into() });
 
@@ -1921,7 +1918,7 @@ pub fn createTestEntitlement(
     self: *Self,
     application_id: Snowflake,
     params: Types.CreateTestEntitlement,
-) RequestFailedError!Result(Partial(Types.Entitlement)) {
+) !Result(Partial(Types.Entitlement)) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
 
@@ -1934,7 +1931,7 @@ pub fn createTestEntitlement(
 /// Deletes a currently-active test entitlement. Discord will act as though that user or guild no longer has entitlement to your premium offering.
 ///
 /// Returns 204 No Content on success.
-pub fn deleteTestEntitlement(self: *Self, application_id: Snowflake) RequestFailedError!Result(void) {
+pub fn deleteTestEntitlement(self: *Self, application_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
 
@@ -1945,7 +1942,7 @@ pub fn deleteTestEntitlement(self: *Self, application_id: Snowflake) RequestFail
 }
 
 /// Returns all SKUs for a given application.
-pub fn fetchSkus(self: *Self, application_id: Snowflake) RequestFailedError!Result([]Types.Sku) {
+pub fn fetchSkus(self: *Self, application_id: Snowflake) !Result([]Types.Sku) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/skus", .{application_id.into()});
 
@@ -1959,7 +1956,7 @@ pub fn fetchSkus(self: *Self, application_id: Snowflake) RequestFailedError!Resu
 // start sticker methods
 
 /// Returns a list of available sticker packs.
-pub fn fetchStickerPacks(self: *Self, guild_id: Snowflake) RequestFailedError!Result([]Types.StickerPack) {
+pub fn fetchStickerPacks(self: *Self, guild_id: Snowflake) !Result([]Types.StickerPack) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/sticker-packs", .{guild_id.into()});
 
@@ -1971,7 +1968,7 @@ pub fn fetchStickerPacks(self: *Self, guild_id: Snowflake) RequestFailedError!Re
 }
 
 /// Returns a sticker object for the given sticker ID.
-pub fn fetchSticker(self: *Self, sticker_id: Snowflake) RequestFailedError!Result(Types.Sticker) {
+pub fn fetchSticker(self: *Self, sticker_id: Snowflake) !Result(Types.Sticker) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/stickers/{d}", .{sticker_id.into()});
 
@@ -1983,7 +1980,7 @@ pub fn fetchSticker(self: *Self, sticker_id: Snowflake) RequestFailedError!Resul
 }
 
 /// Returns a sticker object for the given sticker ID.
-pub fn fetchStickerPack(self: *Self, pack_id: Snowflake) RequestFailedError!Result(Types.StickerPack) {
+pub fn fetchStickerPack(self: *Self, pack_id: Snowflake) !Result(Types.StickerPack) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/sticker-packs/{d}", .{pack_id.into()});
 
@@ -1996,7 +1993,7 @@ pub fn fetchStickerPack(self: *Self, pack_id: Snowflake) RequestFailedError!Resu
 
 /// Returns an array of sticker objects for the given guild.
 /// Includes `user` fields if the bot has the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
-pub fn fetchGuildStickers(self: *Self, guild_id: Snowflake) RequestFailedError!Result([]Types.Sticker) {
+pub fn fetchGuildStickers(self: *Self, guild_id: Snowflake) !Result([]Types.Sticker) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers", .{guild_id.into()});
 
@@ -2009,7 +2006,7 @@ pub fn fetchGuildStickers(self: *Self, guild_id: Snowflake) RequestFailedError!R
 
 /// Returns an array of sticker objects for the given guild.
 /// Includes `user` fields if the bot has the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
-pub fn fetchGuildSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake) RequestFailedError!Result(Types.Sticker) {
+pub fn fetchGuildSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake) !Result(Types.Sticker) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
 
@@ -2029,7 +2026,7 @@ pub fn createSticker(
     guild_id: Snowflake,
     sticker: Types.CreateModifyGuildSticker,
     file: FileData,
-) RequestFailedError!Result(Types.Sticker) {
+) !Result(Types.Sticker) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers", .{guild_id.into()});
 
@@ -2045,7 +2042,7 @@ pub fn createSticker(
 /// For other stickers, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
 /// Returns the updated sticker object on success.
 /// Fires a Guild Stickers Update Gateway event.
-pub fn editSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake, sticker: Types.CreateModifyGuildSticker) RequestFailedError!Result(Types.Sticker) {
+pub fn editSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake, sticker: Types.CreateModifyGuildSticker) !Result(Types.Sticker) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
 
@@ -2060,7 +2057,7 @@ pub fn editSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake, stic
 /// For other stickers, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
 /// Returns 204 No Content on success.
 /// Fires a Guild Stickers Update Gateway event.
-pub fn deleteSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake) RequestFailedError!Result(void) {
+pub fn deleteSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake) !Result(void) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
 
