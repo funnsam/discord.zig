@@ -534,6 +534,11 @@ pub const MessageComponentTypes = enum(u4) {
     pub fn jsonStringify(self: @This(), writer: anytype) !void {
         try writer.print("{d}", .{@intFromEnum(self)});
     }
+
+    pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
+        if (src != .integer) @panic("Invalid value for InteractionTypes");
+        return @enumFromInt(src.integer);
+    }
 };
 
 pub const TextStyles = enum(u4) {
@@ -752,7 +757,6 @@ pub const SystemChannelFlags = packed struct {
         return fromRaw(@intCast(src.integer));
     }
 
-
     /// Suppress member join notifications
     SuppressJoinNotifications: bool = false,
     /// Suppress server boost notifications
@@ -952,6 +956,11 @@ pub const InteractionTypes = enum(u4) {
     pub fn jsonStringify(self: @This(), writer: anytype) !void {
         try writer.print("{d}", .{@intFromEnum(self)});
     }
+
+    pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
+        if (src != .integer) @panic("Invalid value for InteractionTypes");
+        return @enumFromInt(src.integer);
+    }
 };
 
 /// https://discord.com/developers/docs/interactions/slash-commands#applicationcommandoptiontype
@@ -970,6 +979,11 @@ pub const ApplicationCommandOptionTypes = enum(u4) {
 
     pub fn jsonStringify(self: @This(), writer: anytype) !void {
         try writer.print("{d}", .{@intFromEnum(self)});
+    }
+
+    pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
+        if (src != .integer) @panic("Invalid value for ApplicationCommandOptionTypes");
+        return @enumFromInt(src.integer);
     }
 };
 
@@ -1160,6 +1174,11 @@ pub const ApplicationCommandTypes = enum(u4) {
     pub fn jsonStringify(self: @This(), writer: anytype) !void {
         try writer.print("{d}", .{@intFromEnum(self)});
     }
+
+    pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
+        if (src != .integer) @panic("Invalid value for ApplicationCommandTypes");
+        return @enumFromInt(src.integer);
+    }
 };
 
 pub const ApplicationCommandPermissionTypes = enum(u4) {
@@ -1197,7 +1216,6 @@ pub const BitwisePermissionFlags = packed struct {
         if (src != .integer) @panic("Invalid value for bitfield");
         return fromRaw(@intCast(src.integer));
     }
-
 
     /// Allows creation of instant invites
     CREATE_INSTANT_INVITE: bool = false,
@@ -1540,7 +1558,6 @@ pub const GatewayDispatchEventNames = union(enum) {
     RESUMED,
 };
 
-
 /// https://discord.com/developers/docs/interactions/slash-commands#interaction-response-interactionresponsetype
 pub const InteractionResponseTypes = enum(u4) {
     /// ACK a `Ping`
@@ -1571,6 +1588,11 @@ pub const InteractionResponseTypes = enum(u4) {
 
     pub fn jsonStringify(self: @This(), writer: anytype) !void {
         try writer.print("{d}", .{@intFromEnum(self)});
+    }
+
+    pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
+        if (src != .integer) @panic("Invalid value for InteractionTypes");
+        return @enumFromInt(src.integer);
     }
 };
 

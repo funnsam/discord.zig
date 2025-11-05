@@ -240,6 +240,7 @@ pub const MessageActivity = @import("structures/types.zig").MessageActivity;
 pub const MessageReference = @import("structures/types.zig").MessageReference;
 pub const MessageReferenceType = @import("structures/types.zig").MessageReferenceType;
 pub const MessageSnapshot = @import("structures/types.zig").MessageSnapshot;
+pub const Interaction = @import("structures/types.zig").Interaction;
 pub const MessageInteraction = @import("structures/types.zig").MessageInteraction;
 pub const MessageInteractionMetadata = @import("structures/types.zig").MessageInteractionMetadata;
 pub const AllowedMentions = @import("structures/types.zig").AllowedMentions;
@@ -394,7 +395,6 @@ pub fn CustomisedSession(comptime Table: cache.TableTemplate) type {
                 @panic("we are cooked\n"); // check your token dumbass
             }
 
-            std.debug.print("{s}\n", .{body});
             const parsed = try json.parseFromSlice(GatewayBotInfo, self.allocator, body, .{});
             defer parsed.deinit();
 

@@ -19,12 +19,48 @@ const Discord = @import("discord");
 const Shard = Discord.Shard;
 
 var session: *Discord.Session = undefined;
+var application_id: Discord.Snowflake = undefined;
+var command_bruh_id: Discord.Snowflake = undefined;
 
 fn ready(_: *Shard, payload: Discord.Ready) !void {
     std.debug.print("logged in as {s}\n", .{payload.user.username});
+    application_id = payload.application.?.id;
+
+    const command = try session.api.createApplicationCommand(
+        application_id,
+        .{
+            .name = "bruh",
+            .description = "description",
+            .contexts = &.{.Guild},
+            .options = &.{
+                .{
+                    .name = "arg",
+                    .description = "description 2",
+                    .min_length = 3,
+                    .max_length = 6,
+                    .required = true,
+                    .type = .String,
+                },
+            },
+        },
+    );
+    command_bruh_id = command.value.unwrap().id;
 }
 
-fn message_create(_: *Shard, message: Discord.Message) !void {
+fn interactionCreate(_: *Shard, interaction: Discord.Interaction) !void {
+    if (interaction.data.?.id == command_bruh_id) {
+        var buf: [4096]u8 = undefined;
+        const content = try std.fmt.bufPrint(&buf, "{s} 🥀💔", .{interaction.data.?.options.?[0].value.?.string});
+
+        _ = try session.api.createInteractionResponse(
+            interaction.id,
+            interaction.token,
+            .{ .content = content },
+        );
+    }
+}
+
+fn messageCreate(_: *Shard, message: Discord.Message) !void {
     if (message.content != null) {
         if (std.ascii.eqlIgnoreCase(message.content.?, "!hi")) {
             var result = try session.api.sendMessage(message.channel_id, .{ .content = "hi :)" });
@@ -96,7 +132,11 @@ pub fn main() !void {
     try session.start(.{
         .intents = intents,
         .authorization = token,
-        .run = .{ .message_create = &message_create, .ready = &ready },
+        .run = .{
+            .message_create = &messageCreate,
+            .interaction_create = &interactionCreate,
+            .ready = &ready,
+        },
         .log = .yes,
         .options = .{},
         .cache = .defaults(allocator),

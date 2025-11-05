@@ -63,6 +63,27 @@ pub fn fetchMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) !
     return message;
 }
 
+pub fn createInteractionResponse(
+    self: *Self,
+    interaction_id: Snowflake,
+    interaction_token: []const u8,
+    message: Partial(Types.CreateMessage),
+) !Result(void) {
+    var buf: [512]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/interactions/{d}/{s}/callback", .{ interaction_id.into(), interaction_token });
+
+    var req = FetchReq.init(self.allocator, self.authorization);
+    defer req.deinit(self.allocator);
+
+    const Callback = struct {
+        type: isize = 4,
+        data: Partial(Types.CreateMessage),
+    };
+
+    const res = try req.post4(self.allocator, path, Callback{ .data = message });
+    return res;
+}
+
 /// Post a message to a guild text or DM channel.
 /// Returns a message object.
 /// Fires a Message Create Gateway event.
@@ -1717,7 +1738,7 @@ pub fn createApplicationCommand(self: *Self, application_id: Snowflake, command:
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit(self.allocator);
 
-    const res = try req.post(self.allocator, Types.CreateApplicationCommand, path, command);
+    const res = try req.post(self.allocator, Types.ApplicationCommand, path, command);
     return res;
 }
 

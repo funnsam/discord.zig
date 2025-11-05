@@ -202,7 +202,9 @@ pub const FetchReq = struct {
 
         var stringify: json.Stringify = .{
             .writer = &writer,
-            .options = .{ .emit_null_optional_fields = true, },
+            .options = .{
+                .emit_null_optional_fields = true,
+            },
         };
         try stringify.write(object);
         const result = try self.makeRequest(allocator, .POST, path, writer.buffered());
@@ -234,9 +236,13 @@ pub const FetchReq = struct {
         var string = std.ArrayList(u8).init(fba.allocator());
         errdefer string.deinit();
 
-        try json.stringify(object, .{
-            .emit_null_optional_fields = true,
-        }, string.writer());
+        var stringify: json.Stringify = .{
+            .writer = &string.writer,
+            .options = .{
+                .emit_null_optional_fields = true,
+            },
+        };
+        try stringify.write(object);
         const result = try self.makeRequestWithFiles(.POST, path, try string.toOwnedSlice(), files);
 
         if (result.status != .ok)
@@ -245,21 +251,24 @@ pub const FetchReq = struct {
         return try json_helpers.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn post4(self: *FetchReq, path: []const u8, object: anytype) !Result(void) {
+    pub fn post4(self: *FetchReq, allocator: mem.Allocator, path: []const u8, object: anytype) !Result(void) {
         var buf: [4096]u8 = undefined;
-        var fba = std.heap.FixedBufferAllocator.init(&buf);
-        var string = std.ArrayList(u8).init(fba.allocator());
-        errdefer string.deinit();
+        var writer = io.Writer.fixed(&buf);
 
-        try json.stringify(object, .{
-            .emit_null_optional_fields = true,
-        }, string.writer());
-        const result = try self.makeRequest(.POST, path, try string.toOwnedSlice());
+        var stringify: json.Stringify = .{
+            .writer = &writer,
+            .options = .{
+                .emit_null_optional_fields = true,
+            },
+        };
+        try stringify.write(object);
+        const result = try self.makeRequest(allocator, .POST, path, writer.buffered());
 
-        if (result.status != .no_content)
-            return try json_helpers.parseLeft(DiscordError, void, self.allocator, try self.body.toOwnedSlice());
+        // if (result.status != .no_content)
+        // return try json_helpers.parseLeft(DiscordError, void, self.allocator, &buf);
+        _ = result;
 
-        return .ok({});
+        return .okNoAlloc({});
     }
 
     pub fn post5(self: *FetchReq, path: []const u8) !Result(void) {
@@ -278,7 +287,7 @@ pub const FetchReq = struct {
         path: []const u8,
         to_post: ?[]const u8,
     ) !http.Client.FetchResult {
-        var buf: [256]u8 = undefined;
+        var buf: [1024]u8 = undefined;
         const constructed = try std.fmt.bufPrint(&buf, "{s}{s}{s}", .{ BASE_URL, path, try self.formatQueryParams() });
 
         try self.extra_headers.append(allocator, http.Header{ .name = "Accept", .value = "application/json" });

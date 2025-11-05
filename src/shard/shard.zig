@@ -277,7 +277,7 @@ fn readMessage(self: *Self, _: anytype) !void {
 
         // make sure to avoid race conditions
         // we free this payload eventually once our event executes
-        if (raw.value.d) |p| payload.* = p;
+        payload.* = raw.value.d orelse .null;
 
         switch (@as(Opcode, @enumFromInt(raw.value.op))) {
             .Dispatch => {
@@ -464,11 +464,14 @@ pub fn handleEventNoError(self: *Self, name: []const u8, payload_ptr: *json.Valu
             diagnostics.getLine(),
             diagnostics.getByteOffset(),
         });
-        var stringify = std.json.Stringify {
+        var stringify = std.json.Stringify{
             .writer = &stdout.interface,
-            .options = .{ .whitespace = .indent_4, },
+            .options = .{
+                .whitespace = .indent_4,
+            },
         };
         stringify.write(payload_ptr) catch {};
+        stdout.interface.flush() catch {};
     };
 }
 
@@ -549,7 +552,8 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: json.Value) !void {
     };
 
     if (mem.eql(u8, name, "INTERACTION_CREATE")) if (self.handler.interaction_create) |event| {
-        const interaction = try json.parseFromValue(Types.MessageInteraction, self.allocator, payload, .{ .ignore_unknown_fields = true, .max_value_len = MAX_VALUE_LEN });
+        // const interaction = try json.parseFromValue(Types.MessageInteraction, self.allocator, payload, .{ .ignore_unknown_fields = true, .max_value_len = MAX_VALUE_LEN });
+        const interaction = try json.parseFromValue(Types.Interaction, self.allocator, payload, .{ .ignore_unknown_fields = true, .max_value_len = MAX_VALUE_LEN });
 
         try event(self, interaction.value);
     };
