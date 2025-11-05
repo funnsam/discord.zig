@@ -1710,6 +1710,17 @@ pub fn fetchApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: S
     return emoji;
 }
 
+pub fn createApplicationCommand(self: *Self, application_id: Snowflake, command: Types.CreateApplicationCommand) !Result(Types.ApplicationCommand) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/commands", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.authorization);
+    defer req.deinit(self.allocator);
+
+    const res = try req.post(self.allocator, Types.CreateApplicationCommand, path, command);
+    return res;
+}
+
 /// Create a new emoji for the application. Returns the new emoji object on success.
 pub fn createApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types.CreateGuildEmoji) !Result(Types.Emoji) {
     var buf: [256]u8 = undefined;
