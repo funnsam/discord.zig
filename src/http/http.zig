@@ -251,7 +251,7 @@ pub const FetchReq = struct {
         return try json_helpers.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn post4(self: *FetchReq, allocator: mem.Allocator, path: []const u8, object: anytype) !Result(void) {
+    pub fn post4(self: *FetchReq, allocator: mem.Allocator, path: []const u8, object: anytype) !void {
         var buf: [4096]u8 = undefined;
         var writer = io.Writer.fixed(&buf);
 
@@ -263,12 +263,9 @@ pub const FetchReq = struct {
         };
         try stringify.write(object);
         const result = try self.makeRequest(allocator, .POST, path, writer.buffered());
-
-        // if (result.status != .no_content)
-        // return try json_helpers.parseLeft(DiscordError, void, self.allocator, &buf);
         _ = result;
 
-        return .okNoAlloc({});
+        // return try json_helpers.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice(allocator));
     }
 
     pub fn post5(self: *FetchReq, path: []const u8) !Result(void) {
@@ -302,6 +299,7 @@ pub const FetchReq = struct {
             .method = method,
             .extra_headers = try self.extra_headers.toOwnedSlice(allocator),
             .response_writer = &writer.writer,
+            .keep_alive = false,
         };
 
         if (to_post != null) {

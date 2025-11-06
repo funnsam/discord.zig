@@ -68,7 +68,7 @@ pub fn createInteractionResponse(
     interaction_id: Snowflake,
     interaction_token: []const u8,
     message: Partial(Types.CreateMessage),
-) !Result(void) {
+) !void {
     var buf: [512]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/interactions/{d}/{s}/callback", .{ interaction_id.into(), interaction_token });
 
