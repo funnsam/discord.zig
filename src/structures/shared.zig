@@ -404,12 +404,14 @@ pub const MessageFlags = packed struct {
     Loading: bool = false,
     /// This message failed to mention some roles and add their members to the thread
     FailedToMentionSomeRolesInThread: bool = false,
-    _pad: u3 = 0,
+    _pad1: u3 = 0,
     /// This message will not trigger push and desktop notifications
     SuppressNotifications: bool = false,
     /// This message is a voice message
     IsVoiceMessage: bool = false,
-    _pad1: u1 = 0,
+    /// This message has a snapshot (via Message Forwarding)
+    HasSnapshot: bool = false,
+    _pad2: u1 = 0,
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#activity-object-activity-flags
