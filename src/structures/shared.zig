@@ -367,6 +367,10 @@ pub const MessageFlags = packed struct {
         return @bitCast(raw);
     }
 
+    pub fn jsonStringify(self: @This(), writer: anytype) !void {
+        try writer.print("{d}", .{self.toRaw()});
+    }
+
     pub fn jsonParse(allocator: std.mem.Allocator, src: anytype, _: std.json.ParseOptions) !@This() {
         const value = try std.json.innerParse(std.json.Value, allocator, src, .{
             .ignore_unknown_fields = true,
@@ -400,7 +404,7 @@ pub const MessageFlags = packed struct {
     Loading: bool = false,
     /// This message failed to mention some roles and add their members to the thread
     FailedToMentionSomeRolesInThread: bool = false,
-    _pad: u4 = 0,
+    _pad: u3 = 0,
     /// This message will not trigger push and desktop notifications
     SuppressNotifications: bool = false,
     /// This message is a voice message
