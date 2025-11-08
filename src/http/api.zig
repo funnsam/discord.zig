@@ -37,7 +37,7 @@ pub fn fetchMessages(self: *Self, channel_id: Snowflake, query: Types.GetMessage
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addQueryParam("limit", query.limit);
     try req.addQueryParam("around", query.around);
@@ -57,7 +57,7 @@ pub fn fetchMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) !
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const message = try req.get(self.allocator, Types.Message, path);
     return message;
@@ -156,7 +156,7 @@ pub fn sendMessageWithFiles(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const msg = try req.post3(Types.Message, path, wf.create_message, wf.files);
     return msg;
@@ -171,7 +171,7 @@ pub fn crosspostMessage(self: *Self, channel_id: Snowflake, message_id: Snowflak
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/crosspost", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.post2(Types.Message, path);
     return res;
@@ -197,7 +197,7 @@ pub fn react(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.put3(path);
 }
@@ -220,7 +220,7 @@ pub fn deleteOwnReaction(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -243,7 +243,7 @@ pub fn fetchReactions(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const users = try req.get(self.allocator, []Types.User, path);
     return users;
@@ -261,7 +261,7 @@ pub fn nukeReactions(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/reactions", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -284,7 +284,7 @@ pub fn nukeReactionsFor(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -299,7 +299,7 @@ pub fn deleteMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, 
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -317,7 +317,7 @@ pub fn bulkDeleteMessages(self: *Self, channel_id: Snowflake, messages: []Snowfl
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/bulk-delete", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -341,7 +341,7 @@ pub fn editMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, ed
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.patch(Types.Message, path, edit_message);
     return res;
@@ -358,7 +358,7 @@ pub fn fetchChannel(self: *Self, channel_id: Snowflake) !Result(Types.Channel) {
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.get(self.allocator, Types.Channel, path);
     return res;
@@ -372,7 +372,7 @@ pub fn editChannel(self: *Self, channel_id: Snowflake, edit_channel: Types.Modif
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -390,7 +390,7 @@ pub fn deleteChannel(self: *Self, channel_id: Snowflake, reason: ?[]const u8) !R
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -423,7 +423,7 @@ pub fn editChannelPermissions(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/permissions/{d}", .{ channel_id.into(), overwrite_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -438,7 +438,7 @@ pub fn fetchChannelInvites(self: *Self, channel_id: Snowflake) !Result([]Types.I
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/invites", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const invites = try req.get(self.allocator, []Types.Invite, path);
     return invites;
@@ -455,7 +455,7 @@ pub fn createChannelInvite(self: *Self, channel_id: Snowflake, params: Types.Cre
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/invites", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -474,7 +474,7 @@ pub fn deleteChannelPermission(self: *Self, channel_id: Snowflake, overwrite_id:
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/permissions/{d}", .{ channel_id.into(), overwrite_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -496,7 +496,7 @@ pub fn followAnnouncementChannel(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/followers", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -514,7 +514,7 @@ pub fn triggerTypingIndicator(self: *Self, channel_id: Snowflake) !Result(void) 
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/typing", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.post4(path);
 }
@@ -525,7 +525,7 @@ pub fn fetchPins(self: *Self, channel_id: Snowflake) !Result([]Types.Message) {
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const messages = try req.get(self.allocator, []Types.Message, path);
     return messages;
@@ -540,7 +540,7 @@ pub fn pinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, rea
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -556,7 +556,7 @@ pub fn unpinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, r
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -590,7 +590,7 @@ pub fn startThreadFromMessage(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/threads", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -606,7 +606,7 @@ pub fn startThread(self: *Self, channel_id: Snowflake, params: Types.StartThread
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -622,7 +622,7 @@ pub fn startThreadInForumOrMediaChannel(self: *Self, channel_id: Snowflake, para
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -647,7 +647,7 @@ pub fn startThreadInForumOrMediaChannelWithFiles(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
     const thread = try req.post3(Types.Channel, path, options.start_thread, options.files);
@@ -662,7 +662,7 @@ pub fn joinThread(self: *Self, channel_id: Snowflake) !Result(void) {
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/@me", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.put3(path);
 }
@@ -675,7 +675,7 @@ pub fn addMemberToThread(self: *Self, channel_id: Snowflake, user_id: Snowflake)
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/{d}", .{ channel_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.put3(path);
 }
@@ -688,7 +688,7 @@ pub fn leaveThread(self: *Self, channel_id: Snowflake) !Result(void) {
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/@me", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -703,7 +703,7 @@ pub fn removeMemberFromThread(self: *Self, channel_id: Snowflake, user_id: Snowf
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/{d}", .{ channel_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -725,7 +725,7 @@ pub fn fetchThreadMember(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const thread_member = try req.get(self.allocator, Types.ThreadMember, path);
     return thread_member;
@@ -743,7 +743,7 @@ pub fn fetchThreadMembers(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/thread-members/", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const thread_members = try req.get(self.allocator, []Types.ThreadMember, path);
     return thread_members;
@@ -760,7 +760,7 @@ pub fn listPublicArchivedThreads(self: *Self, channel_id: Snowflake) !Result(Typ
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads/archived/public", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const threads = try req.get(self.allocator, Types.ArchivedThreads, path);
     return threads;
@@ -775,7 +775,7 @@ pub fn listPrivateArchivedThreads(self: *Self, channel_id: Snowflake) !Result(Ty
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads/archived/private", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const threads = try req.get(self.allocator, Types.ArchivedThreads, path);
     return threads;
@@ -790,7 +790,7 @@ pub fn listMyPrivateArchivedThreads(self: *Self, channel_id: Snowflake) !Result(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/users/@me/threads/archived/private", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const threads = try req.get(self.allocator, Types.ArchivedThreads, path);
     return threads;
@@ -818,7 +818,7 @@ pub fn fetchGuild(self: *Self, guild_id: Snowflake, with_counts: ?bool) !Result(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addQueryParam("with_counts", with_counts);
 
@@ -833,7 +833,7 @@ pub fn fetchGuildPreview(self: *Self, guild_id: Snowflake) !Result(Types.GuildPr
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/preview", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.get(self.allocator, Types.GuildPreview, path);
     return res;
@@ -847,7 +847,7 @@ pub fn fetchGuildChannels(self: *Self, guild_id: Snowflake) !Result([]Types.Chan
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/channels", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.get(self.allocator, []Types.Channel, path);
     return res;
@@ -865,7 +865,7 @@ pub fn createGuildChannel(self: *Self, guild_id: Snowflake, create_guild_channel
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/channels", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.post(Types.Channel, path, create_guild_channel);
     return res;
@@ -882,7 +882,7 @@ pub fn editGuildChannelPositions(self: *Self, guild_id: Snowflake, edit_guild_ch
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/channels", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.patch2(Types.Channel, path, edit_guild_channel);
 }
@@ -895,7 +895,7 @@ pub fn fetchGuildActiveThreads(self: *Self, guild_id: Snowflake) !Result(Types.C
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/threads/active", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.get(self.allocator, []Types.Channel, path);
     return res;
@@ -908,7 +908,7 @@ pub fn fetchMember(self: *Self, guild_id: Snowflake, user_id: Snowflake) !Result
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.get(self.allocator, Types.Member, path);
     return res;
@@ -928,7 +928,7 @@ pub fn fetchMembers(self: *Self, guild_id: Snowflake, query: ListGuildMembersQue
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addQueryParam("limit", query.limit);
     try req.addQueryParam("after", query.after);
@@ -953,7 +953,7 @@ pub fn searchMembers(self: *Self, guild_id: Snowflake, query: SearchGuildMembers
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addQueryParam("query", query.query);
     try req.addQueryParam("limit", query.limit);
@@ -973,7 +973,7 @@ pub fn addMember(self: *Self, guild_id: Snowflake, user_id: Snowflake, credentia
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.put2(Types.Member, path, credentials);
     return res;
@@ -995,7 +995,7 @@ pub fn editMember(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1008,7 +1008,7 @@ pub fn editCurrentMember(self: *Self, guild_id: Snowflake, attributes: Types.Mod
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/@me", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1022,7 +1022,7 @@ pub fn changeNickname(self: *Self, guild_id: Snowflake, user_id: Snowflake, nick
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1036,7 +1036,7 @@ pub fn changeMyNickname(self: *Self, guild_id: Snowflake, nick: []const u8, reas
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/@me", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1062,7 +1062,7 @@ pub fn addRole(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1088,7 +1088,7 @@ pub fn removeRole(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1109,7 +1109,7 @@ pub fn kickMember(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1136,7 +1136,7 @@ pub fn fetchBans(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.get(self.allocator, []Types.Ban, path);
     return res;
@@ -1149,7 +1149,7 @@ pub fn fetchBan(self: *Self, guild_id: Snowflake, user_id: Snowflake) !Result(Ty
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.get(self.allocator, Types.Ban, path);
     return res;
@@ -1164,7 +1164,7 @@ pub fn ban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]cons
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1179,7 +1179,7 @@ pub fn unban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]co
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1195,7 +1195,7 @@ pub fn bulkBan(self: *Self, guild_id: Snowflake, bulk_ban: Types.CreateGuildBan,
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bulk-ban", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1212,7 +1212,7 @@ pub fn deleteGuild(self: *Self, guild_id: Snowflake) !Result(void) {
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -1226,7 +1226,7 @@ pub fn editGuild(self: *Self, guild_id: Snowflake, edit_guild: Types.ModifyGuild
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.patch(Types.Guild, path, edit_guild);
     return res;
@@ -1237,7 +1237,7 @@ pub fn createGuild(self: *Self, create_guild: Partial(Types.CreateGuild)) !Resul
     const path = try std.fmt.bufPrint(&buf, "/guilds", .{});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const res = try req.post(Types.Guild, path, create_guild);
     return res;
@@ -1253,7 +1253,7 @@ pub fn createRole(self: *Self, guild_id: Snowflake, create_role: Partial(Types.C
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1276,7 +1276,7 @@ pub fn editRole(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles/{d}", .{ guild_id.into(), role_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1293,7 +1293,7 @@ pub fn modifyMFALevel(self: *Self, guild_id: Snowflake, reason: ?[]const u8) !Re
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/mfa", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1309,7 +1309,7 @@ pub fn deleteRole(self: *Self, guild_id: Snowflake, role_id: Snowflake, reason: 
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles/{d}", .{ guild_id.into(), role_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1326,7 +1326,7 @@ pub fn fetchPruneCount(self: *Self, guild_id: Snowflake, query: Types.GetGuildPr
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/prune", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addQueryParam("days", query.days);
     try req.addQueryParam("include_roles", query.include_roles); // needs fixing perhaps
@@ -1354,7 +1354,7 @@ pub fn beginGuildPrune(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/prune", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1369,7 +1369,7 @@ pub fn fetchVoiceRegion(self: *Self, guild_id: Snowflake) !Result([]Types.VoiceR
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/regions", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const regions = try req.get(self.allocator, []Types.VoiceRegion, path);
     return regions;
@@ -1382,7 +1382,7 @@ pub fn fetchInvites(self: *Self, guild_id: Snowflake) !Result([]Types.Invite) {
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/invites", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const invites = try req.get(self.allocator, []Types.Invite, path);
     return invites;
@@ -1395,7 +1395,7 @@ pub fn fetchIntegrations(self: *Self, guild_id: Snowflake) !Result([]Types.Integ
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/integrations", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const integrations = try req.get(self.allocator, []Types.integrations, path);
     return integrations;
@@ -1411,7 +1411,7 @@ pub fn deleteIntegration(self: *Self, guild_id: Snowflake, integration_id: Snowf
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1425,7 +1425,7 @@ pub fn fetchWidgetSettings(self: *Self, guild_id: Snowflake) !Result(Types.Guild
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/widget", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const widget = try req.get(self.allocator, Types.GuildWidgetSettings, path);
     return widget;
@@ -1441,7 +1441,7 @@ pub fn editWidget(self: *Self, guild_id: Snowflake, attributes: Partial(Types.Gu
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/widget", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1456,7 +1456,7 @@ pub fn fetchWidget(self: *Self, guild_id: Snowflake) !Result(Types.GuildWidget) 
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/widget.json", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const widget = try req.get(self.allocator, Types.GuildWidget, path);
     return widget;
@@ -1469,7 +1469,7 @@ pub fn fetchVanityUrl(self: *Self, guild_id: Snowflake) !Result(Partial(Types.In
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/vanity-url", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const invite = try req.get(self.allocator, Partial(Types.Invite), path);
     return invite;
@@ -1492,7 +1492,7 @@ pub fn fetchWelcomeScreen(self: *Self, guild_id: Snowflake) !Result(Types.Welcom
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/welcome-screen", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const welcome_screen = try req.get(self.allocator, Types.WelcomeScreen, path);
     return welcome_screen;
@@ -1504,7 +1504,7 @@ pub fn fetchOnboarding(self: *Self, guild_id: Snowflake) !Result(Types.GuildOnbo
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/onboarding", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const ob = try req.get(self.allocator, Types.GuildOnboarding, path);
     return ob;
@@ -1521,7 +1521,7 @@ pub fn editOnboarding(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/onboarding", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1535,7 +1535,7 @@ pub fn editOnboarding(
 /// For OAuth2, this requires the identify scope, which will return the object without an email, and optionally the email scope, which returns the object with an email if the user has one.
 pub fn fetchMyself(self: *Self) !Result(Types.User) {
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.get(self.allocator, Types.User, "/users/@me");
 }
@@ -1546,7 +1546,7 @@ pub fn fetchUser(self: *Self, user_id: Snowflake) !Result(Types.User) {
     const path = try std.fmt.bufPrint(&buf, "/users/{d}", .{user_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const user = try req.get(self.allocator, Types.User, path);
     return user;
@@ -1555,7 +1555,7 @@ pub fn fetchUser(self: *Self, user_id: Snowflake) !Result(Types.User) {
 /// Returns a user object for a given user ID.
 pub fn editMyself(self: *Self, params: Types.ModifyCurrentUser) !Result(Types.User) {
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const user = try req.patch(Types.User, "/users/@me", params);
     return user;
@@ -1565,7 +1565,7 @@ pub fn editMyself(self: *Self, params: Types.ModifyCurrentUser) !Result(Types.Us
 /// For OAuth2, requires the guilds scope.
 pub fn fetchMyGuilds(self: *Self, params: Types.ModifyCurrentUser) !Result([]Partial(Types.Guild)) {
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const guilds = try req.patch(Types.User, "/users/@me/guilds", params);
     return guilds;
@@ -1578,7 +1578,7 @@ pub fn fetchMyMember(self: *Self, guild_id: Snowflake) !Result(Types.Member) {
     const path = try std.fmt.bufPrint(&buf, "/users/@me/guilds/{d}/member", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const member = try req.get(self.allocator, Types.Member, path);
     return member;
@@ -1590,7 +1590,7 @@ pub fn leaveGuild(self: *Self, guild_id: Snowflake) !Result(void) {
     const path = try std.fmt.bufPrint(&buf, "/users/@me/guilds/{d}", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -1599,7 +1599,7 @@ pub fn leaveGuild(self: *Self, guild_id: Snowflake) !Result(void) {
 /// Returns a DM channel object (if one already exists, it will be returned instead).
 pub fn dm(self: *Self, whom: Snowflake) !Result(Types.Channel) {
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.post(Types.Channel, "/users/@me/channels", .{ .recipient_id = whom });
 }
@@ -1618,7 +1618,7 @@ pub fn groupDm(self: *Self, access_tokens: [][]const u8, whose: []struct { Snowf
 /// Returns a list of connection objects. Requires the connections OAuth2 scope.
 pub fn fetchMyConnections(self: *Self) !Result([]Types.Connection) {
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const connections = try req.get(self.allocator, []Types.Connection, "/users/@me/connections");
     return connections;
@@ -1643,7 +1643,7 @@ pub fn fetchEmojis(self: *Self, guild_id: Snowflake) !Result([]Types.Emoji) {
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const emojis = try req.get(self.allocator, []Types.Emoji, path);
     return emojis;
@@ -1656,7 +1656,7 @@ pub fn fetchEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) !Result
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis/{d}", .{ guild_id.into(), emoji_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const emoji = try req.get(self.allocator, Types.Emoji, path);
     return emoji;
@@ -1671,7 +1671,7 @@ pub fn createEmoji(self: *Self, guild_id: Snowflake, emoji: Types.CreateGuildEmo
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.post(Types.Emoji, path, emoji);
 }
@@ -1686,7 +1686,7 @@ pub fn editEmoji(self: *Self, guild_id: Snowflake, emoji: Types.ModifyGuildEmoji
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.patch(Types.Emoji, path, emoji);
 }
@@ -1701,7 +1701,7 @@ pub fn deleteEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) !Resul
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis/{d}", .{ guild_id.into(), emoji_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -1713,7 +1713,7 @@ pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) !Result([]
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const emojis = try req.get(self.allocator, []Types.Emoji, path);
     return emojis;
@@ -1725,7 +1725,7 @@ pub fn fetchApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: S
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis/{d}", .{ application_id.into(), emoji_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const emoji = try req.get(self.allocator, Types.Emoji, path);
     return emoji;
@@ -1748,7 +1748,7 @@ pub fn createApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Typ
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.post(Types.Emoji, path, emoji);
 }
@@ -1759,7 +1759,7 @@ pub fn editApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.patch(Types.Emoji, path, emoji);
 }
@@ -1770,7 +1770,7 @@ pub fn deleteApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: 
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis/{d}", .{ application_id.into(), emoji_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -1783,7 +1783,7 @@ pub fn fetchInvite(self: *Self, code: []const u8) !Result(Types.Invite) {
     const path = try std.fmt.bufPrint(&buf, "/invites/{s}", .{code});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.get(self.allocator, Types.Invite, path);
 }
@@ -1797,7 +1797,7 @@ pub fn deleteInvite(self: *Self, code: []const u8, reason: ?[]const u8) !Result(
     const path = try std.fmt.bufPrint(&buf, "/invites/{s}", .{code});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     try req.addHeader("X-Audit-Log-Reason", reason);
 
@@ -1821,7 +1821,7 @@ pub fn fetchAnswerVoters(
     });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const voters = try req.get(self.allocator, []Types.User, path);
     return voters;
@@ -1841,7 +1841,7 @@ pub fn endPoll(
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/polls/{d}/expire", .{ channel_id.into(), poll_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const msg = try req.post(Types.Message, path);
     return msg;
@@ -1850,7 +1850,7 @@ pub fn endPoll(
 /// Returns the application object associated with the requesting bot user.
 pub fn fetchMyApplication(self: *Self) !Result(Types.Application) {
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const app = try req.get(self.allocator, Types.Application, "/applications/@me");
     return app;
@@ -1861,7 +1861,7 @@ pub fn fetchMyApplication(self: *Self) !Result(Types.Application) {
 /// Returns the updated application object on success.
 pub fn editMyApplication(self: *Self, params: Types.ModifyApplication) !Result(Types.Application) {
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const app = try req.patch(Types.Application, "/applications/@me", params);
     return app;
@@ -1874,7 +1874,7 @@ pub fn fetchActivityInstance(self: *Self, application_id: Snowflake, insance: []
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/activity-instances/{s}", .{ application_id.into(), insance });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const activity_instance = try req.get(self.allocator, Types.ActivityInstance, path);
     return activity_instance;
@@ -1886,7 +1886,7 @@ pub fn fetchApplicationRoleConnectionMetadataRecords(self: *Self, application_id
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/role-connection/metadata", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.get(self.allocator, []Types.ApplicationRoleConnection, path);
 }
@@ -1897,7 +1897,7 @@ pub fn updateApplicationRoleConnectionMetadataRecords(self: *Self, application_i
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/role-connection/metadata", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.put4([]Types.ApplicationRoleConnection, path);
 }
@@ -1908,7 +1908,7 @@ pub fn fetchEntitlements(self: *Self, application_id: Snowflake) !Result([]Types
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const entitlements = try req.get(self.allocator, []Types.Entitlement, path);
     return entitlements;
@@ -1920,7 +1920,7 @@ pub fn fetchEntitlement(self: *Self, application_id: Snowflake, entitlement_id: 
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements/{d}", .{ application_id.into(), entitlement_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const entitlement = try req.get(self.allocator, Types.Entitlement, path);
     return entitlement;
@@ -1935,7 +1935,7 @@ pub fn consumeEntitlement(self: *Self, application_id: Snowflake, entitlement_id
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements/{d}/consume", .{ application_id.into(), entitlement_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.post5(path);
 }
@@ -1955,7 +1955,7 @@ pub fn createTestEntitlement(
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.post(Partial(Types.Entitlement), path, params);
 }
@@ -1968,7 +1968,7 @@ pub fn deleteTestEntitlement(self: *Self, application_id: Snowflake) !Result(voi
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
@@ -1979,7 +1979,7 @@ pub fn fetchSkus(self: *Self, application_id: Snowflake) !Result([]Types.Sku) {
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/skus", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const skus = try req.get(self.allocator, []Types.Sku, path);
     return skus;
@@ -1993,7 +1993,7 @@ pub fn fetchStickerPacks(self: *Self, guild_id: Snowflake) !Result([]Types.Stick
     const path = try std.fmt.bufPrint(&buf, "/sticker-packs", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const packs = try req.get(self.allocator, []Types.StickerPack, path);
     return packs;
@@ -2005,7 +2005,7 @@ pub fn fetchSticker(self: *Self, sticker_id: Snowflake) !Result(Types.Sticker) {
     const path = try std.fmt.bufPrint(&buf, "/stickers/{d}", .{sticker_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const sticker = try req.get(self.allocator, Types.Sticker, path);
     return sticker;
@@ -2017,7 +2017,7 @@ pub fn fetchStickerPack(self: *Self, pack_id: Snowflake) !Result(Types.StickerPa
     const path = try std.fmt.bufPrint(&buf, "/sticker-packs/{d}", .{pack_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const pack = try req.get(self.allocator, Types.StickerPack, path);
     return pack;
@@ -2030,7 +2030,7 @@ pub fn fetchGuildStickers(self: *Self, guild_id: Snowflake) !Result([]Types.Stic
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const stickers = try req.get(self.allocator, []Types.Sticker, path);
     return stickers;
@@ -2043,7 +2043,7 @@ pub fn fetchGuildSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     const sticker = try req.get(self.allocator, Types.Sticker, path);
     return sticker;
@@ -2063,7 +2063,7 @@ pub fn createSticker(
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     var files = .{file};
     return req.post2(Types.Sticker, path, sticker, &files);
@@ -2079,7 +2079,7 @@ pub fn editSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake, stic
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.patch(Types.Sticker, path, sticker);
 }
@@ -2094,7 +2094,7 @@ pub fn deleteSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake) !R
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
 
     var req = FetchReq.init(self.allocator, self.authorization);
-    defer req.deinit();
+    defer req.deinit(self.allocator);
 
     return req.delete(path);
 }
