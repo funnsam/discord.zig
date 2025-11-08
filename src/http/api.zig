@@ -1715,8 +1715,12 @@ pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) !Result([]
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit(self.allocator);
 
-    const emojis = try req.get(self.allocator, []Types.Emoji, path);
-    return emojis;
+    const Emojis = struct {
+        items: []Types.Emoji,
+    };
+
+    const emojis = try req.get(self.allocator, Emojis, path);
+    return emojis.items;
 }
 
 /// Returns an emoji object for the given application and emoji IDs. Includes the user field.
