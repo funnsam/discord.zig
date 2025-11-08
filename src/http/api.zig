@@ -1708,19 +1708,15 @@ pub fn deleteEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) !Resul
 
 /// Returns an object containing a list of emoji objects for the given application under the `items` key.
 /// Includes a `user` object for the team member that uploaded the emoji from the app's settings, or for the bot user if uploaded using the API.
-pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) !Result([]Types.Emoji) {
+pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) !Result(Types.Emojis) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
 
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit(self.allocator);
 
-    const Emojis = struct {
-        items: []Types.Emoji,
-    };
-
     const emojis = try req.get(self.allocator, Emojis, path);
-    return emojis.items;
+    return emojis;
 }
 
 /// Returns an emoji object for the given application and emoji IDs. Includes the user field.

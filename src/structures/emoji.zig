@@ -36,3 +36,7 @@
         /// Whether this emoji can be used, may be false due to loss of Server Boosts
         available: ?bool = null,
 };
+
+pub const Emojis = struct {
+    items: []Types.Emoji,
+};

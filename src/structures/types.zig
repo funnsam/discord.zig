@@ -200,6 +200,7 @@ pub const EmbedThumbnail = @import("embed.zig").EmbedThumbnail;
 pub const EmbedVideo = @import("embed.zig").EmbedVideo;
 // emoji.zig
 pub const Emoji = @import("emoji.zig").Emoji;
+pub const Emojis = @import("emoji.zig").Emojis;
 // gateway.zig
 pub const GetGatewayBot = @import("gateway.zig").GetGatewayBot;
 pub const SessionStartLimit = @import("gateway.zig").SessionStartLimit;

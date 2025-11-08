@@ -186,6 +186,7 @@ pub const EmbedProvider = @import("structures/types.zig").EmbedProvider;
 pub const EmbedThumbnail = @import("structures/types.zig").EmbedThumbnail;
 pub const EmbedVideo = @import("structures/types.zig").EmbedVideo;
 pub const Emoji = @import("structures/types.zig").Emoji;
+pub const Emojis = @import("structures/types.zig").Emojis;
 pub const GetGatewayBot = @import("structures/types.zig").GetGatewayBot;
 pub const SessionStartLimit = @import("structures/types.zig").SessionStartLimit;
 pub const PresenceUpdate = @import("structures/types.zig").PresenceUpdate;
