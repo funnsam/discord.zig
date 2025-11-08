@@ -89,9 +89,9 @@ pub const FetchReq = struct {
     pub fn get(self: *FetchReq, allocator: mem.Allocator, comptime T: type, path: []const u8) !Result(T) {
         const result = try self.makeRequest(allocator, .GET, path, null);
         if (result.status != .ok)
-            return try json_helpers.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
+            return try json_helpers.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice(allocator));
 
-        const output = try json_helpers.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
+        const output = try json_helpers.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice(allocator));
         return output;
     }
 
