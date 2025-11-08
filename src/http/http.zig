@@ -86,8 +86,8 @@ pub const FetchReq = struct {
         return query.toOwnedSlice(self.allocator);
     }
 
-    pub fn get(self: *FetchReq, comptime T: type, path: []const u8) !Result(T) {
-        const result = try self.makeRequest(.GET, path, null);
+    pub fn get(self: *FetchReq, allocator: mem.Allocator, comptime T: type, path: []const u8) !Result(T) {
+        const result = try self.makeRequest(allocator, .GET, path, null);
         if (result.status != .ok)
             return try json_helpers.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 

@@ -44,7 +44,7 @@ pub fn fetchMessages(self: *Self, channel_id: Snowflake, query: Types.GetMessage
     try req.addQueryParam("before", query.before);
     try req.addQueryParam("after", query.after);
 
-    const messages = try req.get([]Types.Message, path);
+    const messages = try req.get(self.allocator, []Types.Message, path);
     return messages;
 }
 
@@ -59,7 +59,7 @@ pub fn fetchMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) !
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const message = try req.get(Types.Message, path);
+    const message = try req.get(self.allocator, Types.Message, path);
     return message;
 }
 
@@ -245,7 +245,7 @@ pub fn fetchReactions(
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const users = try req.get([]Types.User, path);
+    const users = try req.get(self.allocator, []Types.User, path);
     return users;
 }
 
@@ -360,7 +360,7 @@ pub fn fetchChannel(self: *Self, channel_id: Snowflake) !Result(Types.Channel) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const res = try req.get(Types.Channel, path);
+    const res = try req.get(self.allocator, Types.Channel, path);
     return res;
 }
 
@@ -440,7 +440,7 @@ pub fn fetchChannelInvites(self: *Self, channel_id: Snowflake) !Result([]Types.I
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const invites = try req.get([]Types.Invite, path);
+    const invites = try req.get(self.allocator, []Types.Invite, path);
     return invites;
 }
 
@@ -527,7 +527,7 @@ pub fn fetchPins(self: *Self, channel_id: Snowflake) !Result([]Types.Message) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const messages = try req.get([]Types.Message, path);
+    const messages = try req.get(self.allocator, []Types.Message, path);
     return messages;
 }
 
@@ -727,7 +727,7 @@ pub fn fetchThreadMember(
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const thread_member = try req.get(Types.ThreadMember, path);
+    const thread_member = try req.get(self.allocator, Types.ThreadMember, path);
     return thread_member;
 }
 
@@ -745,7 +745,7 @@ pub fn fetchThreadMembers(
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const thread_members = try req.get([]Types.ThreadMember, path);
+    const thread_members = try req.get(self.allocator, []Types.ThreadMember, path);
     return thread_members;
 }
 
@@ -762,7 +762,7 @@ pub fn listPublicArchivedThreads(self: *Self, channel_id: Snowflake) !Result(Typ
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const threads = try req.get(Types.ArchivedThreads, path);
+    const threads = try req.get(self.allocator, Types.ArchivedThreads, path);
     return threads;
 }
 
@@ -777,7 +777,7 @@ pub fn listPrivateArchivedThreads(self: *Self, channel_id: Snowflake) !Result(Ty
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const threads = try req.get(Types.ArchivedThreads, path);
+    const threads = try req.get(self.allocator, Types.ArchivedThreads, path);
     return threads;
 }
 
@@ -792,7 +792,7 @@ pub fn listMyPrivateArchivedThreads(self: *Self, channel_id: Snowflake) !Result(
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const threads = try req.get(Types.ArchivedThreads, path);
+    const threads = try req.get(self.allocator, Types.ArchivedThreads, path);
     return threads;
 }
 
@@ -822,7 +822,7 @@ pub fn fetchGuild(self: *Self, guild_id: Snowflake, with_counts: ?bool) !Result(
 
     try req.addQueryParam("with_counts", with_counts);
 
-    const res = try req.get(Types.Guild, path);
+    const res = try req.get(self.allocator, Types.Guild, path);
     return res;
 }
 
@@ -835,7 +835,7 @@ pub fn fetchGuildPreview(self: *Self, guild_id: Snowflake) !Result(Types.GuildPr
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const res = try req.get(Types.GuildPreview, path);
+    const res = try req.get(self.allocator, Types.GuildPreview, path);
     return res;
 }
 
@@ -849,7 +849,7 @@ pub fn fetchGuildChannels(self: *Self, guild_id: Snowflake) !Result([]Types.Chan
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const res = try req.get([]Types.Channel, path);
+    const res = try req.get(self.allocator, []Types.Channel, path);
     return res;
 }
 
@@ -897,7 +897,7 @@ pub fn fetchGuildActiveThreads(self: *Self, guild_id: Snowflake) !Result(Types.C
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const res = try req.get([]Types.Channel, path);
+    const res = try req.get(self.allocator, []Types.Channel, path);
     return res;
 }
 
@@ -910,7 +910,7 @@ pub fn fetchMember(self: *Self, guild_id: Snowflake, user_id: Snowflake) !Result
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const res = try req.get(Types.Member, path);
+    const res = try req.get(self.allocator, Types.Member, path);
     return res;
 }
 
@@ -933,7 +933,7 @@ pub fn fetchMembers(self: *Self, guild_id: Snowflake, query: ListGuildMembersQue
     try req.addQueryParam("limit", query.limit);
     try req.addQueryParam("after", query.after);
 
-    const res = try req.get([]Types.Member, path);
+    const res = try req.get(self.allocator, []Types.Member, path);
     return res;
 }
 
@@ -958,7 +958,7 @@ pub fn searchMembers(self: *Self, guild_id: Snowflake, query: SearchGuildMembers
     try req.addQueryParam("query", query.query);
     try req.addQueryParam("limit", query.limit);
 
-    const res = try req.get([]Types.Member, path);
+    const res = try req.get(self.allocator, []Types.Member, path);
     return res;
 }
 
@@ -1138,7 +1138,7 @@ pub fn fetchBans(
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const res = try req.get([]Types.Ban, path);
+    const res = try req.get(self.allocator, []Types.Ban, path);
     return res;
 }
 
@@ -1151,7 +1151,7 @@ pub fn fetchBan(self: *Self, guild_id: Snowflake, user_id: Snowflake) !Result(Ty
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const res = try req.get(Types.Ban, path);
+    const res = try req.get(self.allocator, Types.Ban, path);
     return res;
 }
 
@@ -1331,7 +1331,7 @@ pub fn fetchPruneCount(self: *Self, guild_id: Snowflake, query: Types.GetGuildPr
     try req.addQueryParam("days", query.days);
     try req.addQueryParam("include_roles", query.include_roles); // needs fixing perhaps
 
-    const pruned = try req.get(struct { pruned: isize }, path);
+    const pruned = try req.get(self.allocator, struct { pruned: isize }, path);
     return pruned;
 }
 
@@ -1371,7 +1371,7 @@ pub fn fetchVoiceRegion(self: *Self, guild_id: Snowflake) !Result([]Types.VoiceR
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const regions = try req.get([]Types.VoiceRegion, path);
+    const regions = try req.get(self.allocator, []Types.VoiceRegion, path);
     return regions;
 }
 
@@ -1384,7 +1384,7 @@ pub fn fetchInvites(self: *Self, guild_id: Snowflake) !Result([]Types.Invite) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const invites = try req.get([]Types.Invite, path);
+    const invites = try req.get(self.allocator, []Types.Invite, path);
     return invites;
 }
 
@@ -1397,7 +1397,7 @@ pub fn fetchIntegrations(self: *Self, guild_id: Snowflake) !Result([]Types.Integ
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const integrations = try req.get([]Types.integrations, path);
+    const integrations = try req.get(self.allocator, []Types.integrations, path);
     return integrations;
 }
 
@@ -1427,7 +1427,7 @@ pub fn fetchWidgetSettings(self: *Self, guild_id: Snowflake) !Result(Types.Guild
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const widget = try req.get(Types.GuildWidgetSettings, path);
+    const widget = try req.get(self.allocator, Types.GuildWidgetSettings, path);
     return widget;
 }
 
@@ -1458,7 +1458,7 @@ pub fn fetchWidget(self: *Self, guild_id: Snowflake) !Result(Types.GuildWidget) 
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const widget = try req.get(Types.GuildWidget, path);
+    const widget = try req.get(self.allocator, Types.GuildWidget, path);
     return widget;
 }
 
@@ -1471,7 +1471,7 @@ pub fn fetchVanityUrl(self: *Self, guild_id: Snowflake) !Result(Partial(Types.In
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const invite = try req.get(Partial(Types.Invite), path);
+    const invite = try req.get(self.allocator, Partial(Types.Invite), path);
     return invite;
 }
 
@@ -1494,7 +1494,7 @@ pub fn fetchWelcomeScreen(self: *Self, guild_id: Snowflake) !Result(Types.Welcom
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const welcome_screen = try req.get(Types.WelcomeScreen, path);
+    const welcome_screen = try req.get(self.allocator, Types.WelcomeScreen, path);
     return welcome_screen;
 }
 
@@ -1506,7 +1506,7 @@ pub fn fetchOnboarding(self: *Self, guild_id: Snowflake) !Result(Types.GuildOnbo
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const ob = try req.get(Types.GuildOnboarding, path);
+    const ob = try req.get(self.allocator, Types.GuildOnboarding, path);
     return ob;
 }
 
@@ -1537,7 +1537,7 @@ pub fn fetchMyself(self: *Self) !Result(Types.User) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    return req.get(Types.User, "/users/@me");
+    return req.get(self.allocator, Types.User, "/users/@me");
 }
 
 /// Returns a user object for a given user ID.
@@ -1548,7 +1548,7 @@ pub fn fetchUser(self: *Self, user_id: Snowflake) !Result(Types.User) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const user = try req.get(Types.User, path);
+    const user = try req.get(self.allocator, Types.User, path);
     return user;
 }
 
@@ -1580,7 +1580,7 @@ pub fn fetchMyMember(self: *Self, guild_id: Snowflake) !Result(Types.Member) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const member = try req.get(Types.Member, path);
+    const member = try req.get(self.allocator, Types.Member, path);
     return member;
 }
 
@@ -1620,7 +1620,7 @@ pub fn fetchMyConnections(self: *Self) !Result([]Types.Connection) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const connections = try req.get([]Types.Connection, "/users/@me/connections");
+    const connections = try req.get(self.allocator, []Types.Connection, "/users/@me/connections");
     return connections;
 }
 
@@ -1645,7 +1645,7 @@ pub fn fetchEmojis(self: *Self, guild_id: Snowflake) !Result([]Types.Emoji) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const emojis = try req.get([]Types.Emoji, path);
+    const emojis = try req.get(self.allocator, []Types.Emoji, path);
     return emojis;
 }
 
@@ -1658,7 +1658,7 @@ pub fn fetchEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) !Result
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const emoji = try req.get(Types.Emoji, path);
+    const emoji = try req.get(self.allocator, Types.Emoji, path);
     return emoji;
 }
 
@@ -1715,7 +1715,7 @@ pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) !Result([]
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const emojis = try req.get([]Types.Emoji, path);
+    const emojis = try req.get(self.allocator, []Types.Emoji, path);
     return emojis;
 }
 
@@ -1727,7 +1727,7 @@ pub fn fetchApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: S
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const emoji = try req.get(Types.Emoji, path);
+    const emoji = try req.get(self.allocator, Types.Emoji, path);
     return emoji;
 }
 
@@ -1785,7 +1785,7 @@ pub fn fetchInvite(self: *Self, code: []const u8) !Result(Types.Invite) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    return req.get(Types.Invite, path);
+    return req.get(self.allocator, Types.Invite, path);
 }
 
 /// Delete an invite.
@@ -1823,7 +1823,7 @@ pub fn fetchAnswerVoters(
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const voters = try req.get([]Types.User, path);
+    const voters = try req.get(self.allocator, []Types.User, path);
     return voters;
 }
 
@@ -1852,7 +1852,7 @@ pub fn fetchMyApplication(self: *Self) !Result(Types.Application) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const app = try req.get(Types.Application, "/applications/@me");
+    const app = try req.get(self.allocator, Types.Application, "/applications/@me");
     return app;
 }
 
@@ -1876,7 +1876,7 @@ pub fn fetchActivityInstance(self: *Self, application_id: Snowflake, insance: []
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const activity_instance = try req.get(Types.ActivityInstance, path);
+    const activity_instance = try req.get(self.allocator, Types.ActivityInstance, path);
     return activity_instance;
 }
 
@@ -1888,7 +1888,7 @@ pub fn fetchApplicationRoleConnectionMetadataRecords(self: *Self, application_id
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    return req.get([]Types.ApplicationRoleConnection, path);
+    return req.get(self.allocator, []Types.ApplicationRoleConnection, path);
 }
 
 /// Updates and returns a list of application role connection metadata objects for the given application.
@@ -1910,7 +1910,7 @@ pub fn fetchEntitlements(self: *Self, application_id: Snowflake) !Result([]Types
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const entitlements = try req.get([]Types.Entitlement, path);
+    const entitlements = try req.get(self.allocator, []Types.Entitlement, path);
     return entitlements;
 }
 
@@ -1922,7 +1922,7 @@ pub fn fetchEntitlement(self: *Self, application_id: Snowflake, entitlement_id: 
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const entitlement = try req.get(Types.Entitlement, path);
+    const entitlement = try req.get(self.allocator, Types.Entitlement, path);
     return entitlement;
 }
 
@@ -1981,7 +1981,7 @@ pub fn fetchSkus(self: *Self, application_id: Snowflake) !Result([]Types.Sku) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const skus = try req.get([]Types.Sku, path);
+    const skus = try req.get(self.allocator, []Types.Sku, path);
     return skus;
 }
 
@@ -1995,7 +1995,7 @@ pub fn fetchStickerPacks(self: *Self, guild_id: Snowflake) !Result([]Types.Stick
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const packs = try req.get([]Types.StickerPack, path);
+    const packs = try req.get(self.allocator, []Types.StickerPack, path);
     return packs;
 }
 
@@ -2007,7 +2007,7 @@ pub fn fetchSticker(self: *Self, sticker_id: Snowflake) !Result(Types.Sticker) {
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const sticker = try req.get(Types.Sticker, path);
+    const sticker = try req.get(self.allocator, Types.Sticker, path);
     return sticker;
 }
 
@@ -2019,7 +2019,7 @@ pub fn fetchStickerPack(self: *Self, pack_id: Snowflake) !Result(Types.StickerPa
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const pack = try req.get(Types.StickerPack, path);
+    const pack = try req.get(self.allocator, Types.StickerPack, path);
     return pack;
 }
 
@@ -2032,7 +2032,7 @@ pub fn fetchGuildStickers(self: *Self, guild_id: Snowflake) !Result([]Types.Stic
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const stickers = try req.get([]Types.Sticker, path);
+    const stickers = try req.get(self.allocator, []Types.Sticker, path);
     return stickers;
 }
 
@@ -2045,7 +2045,7 @@ pub fn fetchGuildSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake
     var req = FetchReq.init(self.allocator, self.authorization);
     defer req.deinit();
 
-    const sticker = try req.get(Types.Sticker, path);
+    const sticker = try req.get(self.allocator, Types.Sticker, path);
     return sticker;
 }
 
