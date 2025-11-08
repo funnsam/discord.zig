@@ -38,5 +38,5 @@
 };
 
 pub const Emojis = struct {
-    items: []Types.Emoji,
+    items: []Emoji,
 };
