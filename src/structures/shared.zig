@@ -38,6 +38,11 @@ pub const PremiumTypes = enum {
     pub fn jsonStringify(self: @This(), writer: anytype) !void {
         try writer.print("{d}", .{@intFromEnum(self)});
     }
+
+    pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
+        if (src != .integer) @panic("Invalid value for PremiumTypes");
+        return @enumFromInt(src.integer);
+    }
 };
 
 /// https://discord.com/developers/docs/resources/user#user-object-user-flags
@@ -542,7 +547,7 @@ pub const MessageComponentTypes = enum(u4) {
     }
 
     pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
-        if (src != .integer) @panic("Invalid value for InteractionTypes");
+        if (src != .integer) @panic("Invalid value for MessageComponentTypes");
         return @enumFromInt(src.integer);
     }
 };
@@ -1597,7 +1602,7 @@ pub const InteractionResponseTypes = enum(u4) {
     }
 
     pub fn jsonParseFromValue(_: std.mem.Allocator, src: std.json.Value, _: std.json.ParseOptions) @This() {
-        if (src != .integer) @panic("Invalid value for InteractionTypes");
+        if (src != .integer) @panic("Invalid value for InteractionResponseTypes");
         return @enumFromInt(src.integer);
     }
 };
